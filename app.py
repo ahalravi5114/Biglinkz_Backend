@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Import CORS
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-app = Flask(__name__)
+app = Flask(_name_)
+
+# Enable CORS for all origins and methods
+CORS(app)
 
 # Get the database URL from environment variables
 DB_URL = os.getenv('DATABASE_URL')
@@ -40,5 +44,5 @@ def login():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-if __name__== '__main__':
+if _name_ == '_main_':
     app.run(debug=True)
