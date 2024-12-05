@@ -4,7 +4,7 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Enable CORS for all origins and methods
 CORS(app)
@@ -44,5 +44,5 @@ def login():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(debug=True)
