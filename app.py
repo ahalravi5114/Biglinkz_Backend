@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS  # Import CORS
 from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -30,16 +31,26 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        query = "SELECT * FROM user_data WHERE email = %s AND password = %s"
-        cursor.execute(query, (email, password))
+        # Query to get the stored hashed password and other user details
+        query = "SELECT id, email, password, type FROM user_data WHERE email = %s"
+        cursor.execute(query, (email,))
         user = cursor.fetchone()
 
         cursor.close()
         conn.close()
 
-        if user:
-            return jsonify({"message": "Login successful", "user": user}), 200
+        if user and check_password_hash(user['password'], password):
+            # If the password matches
+            return jsonify({
+                "message": "Login successful",
+                "user": {
+                    "id": user['id'],
+                    "email": user['email'],
+                    "type": user['type']
+                }
+            }), 200
         else:
+            # If the email or password is incorrect
             return jsonify({"error": "Invalid email or password"}), 401
 
     except Exception as e:
