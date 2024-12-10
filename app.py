@@ -89,5 +89,30 @@ def signup():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/create-campaign', methods=['POST'])
+def create_campaign():
+    try:
+        data = request.get_json()
+
+        # Extract and validate required campaign details
+        required_fields = [
+            'brand_name', 'brand_instagram_id', 'product', 'website', 'email', 
+            'caption', 'hashtag', 'tags', 'content_type', 'deadline', 'target_followers',
+            'influencer_gender', 'influencer_location', 'campaign_title', 'target_reach',
+            'budget', 'goal', 'manager_name', 'contact_number', 'rewards'
+        ]
+        
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"{field} is required"}), 400
+
+        # Save campaign details to the database
+        campaign = create_campaign_in_db(data)
+
+        return jsonify({"message": "Campaign created successfully", "campaign": campaign}), 201
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
