@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from models import create_campaign_in_db
 
 app = Flask(__name__)
 
