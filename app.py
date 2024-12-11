@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from models import create_campaign_in_db, get_user_id_by_email
+from models import create_campaign_in_db
 
 app = Flask(__name__)
 
@@ -92,30 +92,22 @@ def signup():
 
 @app.route('/create-campaign', methods=['POST'])
 def create_campaign():
-    """Endpoint to create a new campaign."""
     try:
         data = request.get_json()
 
-        # Validate required fields
+        # Extract and validate required campaign details
         required_fields = [
             'brand_name', 'brand_instagram_id', 'product', 'website', 'email', 
             'caption', 'hashtag', 'tags', 'content_type', 'deadline', 'target_followers',
             'influencer_gender', 'influencer_location', 'campaign_title', 'target_reach',
             'budget', 'goal', 'manager_name', 'contact_number', 'rewards'
         ]
+        
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({"error": f"{field} is required"}), 400
 
-        # Retrieve user ID by email
-        user_id = get_user_id_by_email(data['email'])
-        if not user_id:
-            return jsonify({"error": "User with the provided email does not exist"}), 404
-
-        # Add user ID to campaign details
-        data['user_id'] = user_id
-
-        # Insert campaign into the database
+        # Save campaign details to the database
         campaign = create_campaign_in_db(data)
 
         return jsonify({"message": "Campaign created successfully", "campaign": campaign}), 201
