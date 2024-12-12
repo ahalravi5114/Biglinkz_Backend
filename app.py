@@ -22,23 +22,32 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        query = "SELECT user_id, email, password, type FROM user_data WHERE email = %s"
+        query = "SELECT user_id, email, password, type, time FROM user_data WHERE email = %s"
         cursor.execute(query, (email,))
         user = cursor.fetchone()
 
-        cursor.close()
-        conn.close()
-
         if user and check_password_hash(user['password'], password):
+            # Update last login time
+            update_query = "UPDATE user_data SET time = %s WHERE email = %s"
+            current_time = datetime.now(pytz.utc)
+            cursor.execute(update_query, (current_time, email))
+            conn.commit()
+
+            cursor.close()
+            conn.close()
+
             return jsonify({
                 "message": "Login successful",
                 "user": {
                     "user_id": user['user_id'],
                     "email": user['email'],
-                    "type": user['type']
+                    "type": user['type'],
+                    "last_login": user['time']
                 }
             }), 200
         else:
+            cursor.close()
+            conn.close()
             return jsonify({"error": "Invalid email or password"}), 401
 
     except Exception as e:
@@ -65,8 +74,9 @@ def signup():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        query = "INSERT INTO user_data (email, password, type) VALUES (%s, %s, %s) RETURNING user_id, email, type"
-        cursor.execute(query, (email, hashed_password, accounttype))
+        current_time = datetime.now(pytz.utc)
+        query = "INSERT INTO user_data (email, password, type, time) VALUES (%s, %s, %s, %s) RETURNING user_id, email, type, time"
+        cursor.execute(query, (email, hashed_password, accounttype, current_time))
         user = cursor.fetchone()
 
         conn.commit()
