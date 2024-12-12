@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 import logging
 
-app = Flask(__name__)  # Fixed Flask initialization
+app = Flask(__name__)  # Initialize Flask app
 
 # Enable CORS for all origins and methods
 CORS(app)
@@ -17,6 +17,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/login', methods=['POST'])
 def login():
+    """Endpoint for user login."""
     try:
         data = request.get_json()
         email = data.get('email')
@@ -56,6 +57,7 @@ def login():
 
 @app.route('/signup', methods=['POST'])
 def signup():
+    """Endpoint for user signup."""
     try:
         data = request.get_json()
         email = data.get('email')
@@ -102,6 +104,7 @@ def signup():
 
 @app.route('/create-campaign', methods=['POST'])
 def create_campaign():
+    """Endpoint for creating a new campaign."""
     try:
         data = request.get_json()
 
@@ -113,9 +116,18 @@ def create_campaign():
             'start_date', 'end_date'
         ]
 
+        # Validate required fields
         for field in required_fields:
             if field not in data or not data[field]:
-                return jsonify({"error": f"{field} is required"}), 400
+                return jsonify({"error": f"Missing or empty required field: {field}"}), 400
+
+        # Validate date fields
+        try:
+            datetime.strptime(data['start_date'], '%Y-%m-%d')
+            datetime.strptime(data['end_date'], '%Y-%m-%d')
+            datetime.strptime(data['deadline'], '%Y-%m-%d')
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD for start_date, end_date, and deadline."}), 400
 
         user_id = get_user_id_by_email(data['email'])
         if not user_id:

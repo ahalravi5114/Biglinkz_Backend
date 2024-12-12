@@ -13,24 +13,19 @@ def get_db_connection():
     return psycopg2.connect(DB_URL)
 
 def get_user_id_by_email(email):
+    """Fetch the user_id for a given email."""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
-
-        query = "SELECT user_id FROM user_data WHERE email = %s"
-        cursor.execute(query, (email,))
-        result = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
-
-        if result:
-            return result[0]  # result is a tuple, and 'user_id' is the first item
-        else:
-            return None
+        with conn.cursor() as cursor:
+            query = "SELECT user_id FROM user_data WHERE email = %s"
+            cursor.execute(query, (email,))
+            result = cursor.fetchone()
+            return result[0] if result else None
     except Exception as e:
         print(f"Error fetching user_id for email {email}: {e}")
         return None
+    finally:
+        conn.close()
 
 def create_campaign_in_db(campaign_details):
     """Insert campaign details into the database and return the created campaign."""
@@ -45,12 +40,13 @@ def create_campaign_in_db(campaign_details):
         influencer_gender, influencer_location, campaign_title, target_reach,
         budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date, status
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active'
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active'
     ) RETURNING *
     """
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            campaign_details['status'] = 'active'
             cursor.execute(query, (
                 campaign_details['brand_name'], campaign_details['brand_instagram_id'], campaign_details['product'],
                 campaign_details['website'], campaign_details['email'], 
@@ -60,9 +56,9 @@ def create_campaign_in_db(campaign_details):
                 campaign_details['campaign_title'], campaign_details['target_reach'], 
                 campaign_details['budget'], campaign_details['goal'], 
                 campaign_details['manager_name'], campaign_details['contact_number'], campaign_details['rewards'],
-                campaign_details['user_id'],
-                start_date, end_date 
+                campaign_details['user_id'], start_date, end_date, campaign_details['status']
             ))
+
             campaign = cursor.fetchone()
             conn.commit()
             return campaign
