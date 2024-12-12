@@ -125,9 +125,8 @@ def create_campaign():
         try:
             datetime.strptime(data['start_date'], '%Y-%m-%d')
             datetime.strptime(data['end_date'], '%Y-%m-%d')
-            datetime.strptime(data['deadline'], '%Y-%m-%d')
         except ValueError:
-            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD for start_date, end_date, and deadline."}), 400
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD for start_date and end_date"}), 400
 
         user_id = get_user_id_by_email(data['email'])
         if not user_id:
