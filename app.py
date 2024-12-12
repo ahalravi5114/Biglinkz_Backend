@@ -33,7 +33,7 @@ def login():
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Query to get the stored hashed password and other user details
-        query = "SELECT id, email, password, type FROM user_data WHERE email = %s"
+        query = "SELECT user_id, email, password, type FROM user_data WHERE email = %s"
         cursor.execute(query, (email,))
         user = cursor.fetchone()
 
@@ -45,7 +45,7 @@ def login():
             return jsonify({
                 "message": "Login successful",
                 "user": {
-                    "id": user['id'],
+                    "user_id": user['user_id'],
                     "email": user['email'],
                     "type": user['type']
                 }
@@ -77,7 +77,7 @@ def signup():
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        query = "INSERT INTO user_data (email, password, type) VALUES (%s, %s, %s) RETURNING id, email, type"
+        query = "INSERT INTO user_data (email, password, type) VALUES (%s, %s, %s) RETURNING user_id, email, type"
         cursor.execute(query, (email, hashed_password, accounttype))
         user = cursor.fetchone()
 
