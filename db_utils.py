@@ -38,9 +38,9 @@ def create_campaign_in_db(campaign_details):
         brand_name, brand_instagram_id, product, website, email, 
         caption, hashtag, tags, content_type, deadline, target_followers,
         influencer_gender, influencer_location, campaign_title, target_reach,
-        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date
+        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date, status
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active'
     ) RETURNING *
     """
     conn = get_db_connection()
