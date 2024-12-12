@@ -38,9 +38,9 @@ def create_campaign_in_db(campaign_details):
         brand_name, brand_instagram_id, product, website, email, 
         caption, hashtag, tags, content_type, deadline, target_followers,
         influencer_gender, influencer_location, campaign_title, target_reach,
-        budget, goal, manager_name, contact_number, rewards, user_id
+        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     ) RETURNING *
     """
     conn = get_db_connection()
@@ -55,7 +55,8 @@ def create_campaign_in_db(campaign_details):
                 campaign_details['campaign_title'], campaign_details['target_reach'], 
                 campaign_details['budget'], campaign_details['goal'], 
                 campaign_details['manager_name'], campaign_details['contact_number'], campaign_details['rewards'],
-                campaign_details['user_id']
+                campaign_details['user_id'],
+                campaign_details['start_date'], campaign_details['end_date']
             ))
             campaign = cursor.fetchone()
             conn.commit()
