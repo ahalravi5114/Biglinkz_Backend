@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 import logging
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Enable CORS for all origins and methods
 CORS(app)
@@ -130,5 +130,5 @@ def create_campaign():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     app.run(debug=True)
