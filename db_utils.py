@@ -24,7 +24,7 @@ def get_user_id_by_email(email):
         conn.close()
 
         if result:
-            return result['user_id']
+            return result[0]  # result is a tuple, and 'user_id' is the first item
         else:
             return None
     except Exception as e:
