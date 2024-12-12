@@ -32,8 +32,7 @@ def get_user_id_by_email(email):
         return None
 
 def create_campaign_in_db(campaign_details):
-    """Insert campaign details into the database and return the created campaign."""
-   query = """
+    query = """
     INSERT INTO campaigns (
         brand_name, brand_instagram_id, product, website, email, 
         caption, hashtag, tags, content_type, deadline, target_followers,
@@ -42,7 +41,7 @@ def create_campaign_in_db(campaign_details):
     ) VALUES (
         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     ) RETURNING *
-"""
+    """
     conn = get_db_connection()
     try:
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
