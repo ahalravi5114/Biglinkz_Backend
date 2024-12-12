@@ -33,36 +33,36 @@ def get_user_id_by_email(email):
 
 def create_campaign_in_db(campaign_details):
     """Insert campaign details into the database and return the created campaign."""
-    query = """
+   query = """
     INSERT INTO campaigns (
         brand_name, brand_instagram_id, product, website, email, 
         caption, hashtag, tags, content_type, deadline, target_followers,
         influencer_gender, influencer_location, campaign_title, target_reach,
-        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date, status
+        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active'
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     ) RETURNING *
-    """
+"""
     conn = get_db_connection()
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query, (
-                campaign_details['brand_name'], campaign_details['brand_instagram_id'], campaign_details['product'],
-                campaign_details['website'], campaign_details['email'], 
-                campaign_details['caption'], campaign_details['hashtag'], campaign_details['tags'],
-                campaign_details['content_type'], campaign_details['deadline'], campaign_details['target_followers'],
-                campaign_details['influencer_gender'], campaign_details['influencer_location'], 
-                campaign_details['campaign_title'], campaign_details['target_reach'], 
-                campaign_details['budget'], campaign_details['goal'], 
-                campaign_details['manager_name'], campaign_details['contact_number'], campaign_details['rewards'],
-                campaign_details['user_id'],
-                campaign_details['start_date'], campaign_details['end_date']
-            ))
-            campaign = cursor.fetchone()
-            conn.commit()
-            return campaign
-    except Exception as e:
-        conn.rollback()
-        raise Exception(f"Error creating campaign: {str(e)}")
-    finally:
-        conn.close()
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(query, (
+            campaign_details['brand_name'], campaign_details['brand_instagram_id'], campaign_details['product'],
+            campaign_details['website'], campaign_details['email'], 
+            campaign_details['caption'], campaign_details['hashtag'], campaign_details['tags'],
+            campaign_details['content_type'], campaign_details['deadline'], campaign_details['target_followers'],
+            campaign_details['influencer_gender'], campaign_details['influencer_location'], 
+            campaign_details['campaign_title'], campaign_details['target_reach'], 
+            campaign_details['budget'], campaign_details['goal'], 
+            campaign_details['manager_name'], campaign_details['contact_number'], campaign_details['rewards'],
+            campaign_details['user_id'],
+            campaign_details['start_date'], campaign_details['end_date'] 
+        ))
+        campaign = cursor.fetchone()
+        conn.commit()
+        return campaign
+except Exception as e:
+    conn.rollback()
+    raise Exception(f"Error creating campaign: {str(e)}")
+finally:
+    conn.close()
