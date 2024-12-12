@@ -12,18 +12,24 @@ def get_db_connection():
     return psycopg2.connect(DB_URL)
 
 def get_user_id_by_email(email):
-    """Retrieve user ID based on email."""
-    query = "SELECT user_id FROM user_data WHERE email = %s"
-    conn = get_db_connection()
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query, (email,))
-            user = cursor.fetchone()
-            return user['user_id'] if user else None
-    except Exception as e:
-        raise Exception(f"Error fetching user ID: {str(e)}")
-    finally:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        query = "SELECT user_id FROM user_data WHERE email = %s"
+        cursor.execute(query, (email,))
+        result = cursor.fetchone()
+
+        cursor.close()
         conn.close()
+
+        if result:
+            return result['user_id']
+        else:
+            return None
+    except Exception as e:
+        print(f"Error fetching user_id for email {email}: {e}")
+        return None
 
 def create_campaign_in_db(campaign_details):
     """Insert campaign details into the database and return the created campaign."""
