@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection
 import os
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Enable CORS for all origins and methods
 CORS(app)
