@@ -3,3 +3,4 @@ psycopg2-binary==2.9.7
 gunicorn==21.2.0
 Flask-Cors==3.0.10
 Werkzeug==2.3.7
+pytz==2023.3
