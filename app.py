@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 import logging
 
-app = Flask(__name__)
+app = Flask(__name__)  # Fixed Flask initialization
 
 # Enable CORS for all origins and methods
 CORS(app)
@@ -123,12 +123,16 @@ def create_campaign():
 
         data['user_id'] = user_id
 
+        logging.debug(f"Creating campaign with data: {data}")
+
         campaign = create_campaign_in_db(data)
 
         return jsonify({"message": "Campaign created successfully", "campaign": campaign}), 201
 
     except Exception as e:
+        logging.error(f"Error creating campaign: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)

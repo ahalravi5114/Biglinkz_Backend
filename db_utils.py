@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+from datetime import datetime
 
 # Get the database URL from environment variables
 DB_URL = os.getenv('DATABASE_URL')
@@ -32,14 +33,19 @@ def get_user_id_by_email(email):
         return None
 
 def create_campaign_in_db(campaign_details):
+    """Insert campaign details into the database and return the created campaign."""
+    # Parse the start_date and end_date into datetime objects
+    start_date = datetime.strptime(campaign_details['start_date'], '%Y-%m-%d')
+    end_date = datetime.strptime(campaign_details['end_date'], '%Y-%m-%d')
+
     query = """
     INSERT INTO campaigns (
         brand_name, brand_instagram_id, product, website, email, 
         caption, hashtag, tags, content_type, deadline, target_followers,
         influencer_gender, influencer_location, campaign_title, target_reach,
-        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date
+        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date, status
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active'
     ) RETURNING *
     """
     conn = get_db_connection()
@@ -55,7 +61,7 @@ def create_campaign_in_db(campaign_details):
                 campaign_details['budget'], campaign_details['goal'], 
                 campaign_details['manager_name'], campaign_details['contact_number'], campaign_details['rewards'],
                 campaign_details['user_id'],
-                campaign_details['start_date'], campaign_details['end_date'] 
+                start_date, end_date 
             ))
             campaign = cursor.fetchone()
             conn.commit()
