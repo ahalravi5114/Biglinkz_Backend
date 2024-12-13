@@ -204,88 +204,62 @@ def get_campaigns():
         logging.error(f"Error fetching campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/profile', methods=['GET', 'POST', 'PUT'])
+@app.route('/profile', methods=['POST'])
 def profile():
-    """Endpoint for managing influencer profile."""
+    """Endpoint to add influencer profile details."""
     try:
-        if request.method == 'GET':
-            # Fetch influencer data by Instagram ID
-            insta_id = request.args.get('insta_id')
+        # Parse JSON input
+        data = request.get_json()
 
-            if not insta_id:
-                return jsonify({"error": "Instagram ID is required"}), 400
+        required_fields = [
+            "first_name", "last_name", "insta_id", "email", "phone_number",
+            "followers", "country", "state", "city", "category"
+        ]
 
-            with get_db_connection() as conn:
-                with conn.cursor(cursor_factory=DictCursor) as cursor:
-                    query = """
-                        SELECT email, phone_number, followers FROM influencer_profile WHERE insta_id = %s
-                    """
-                    cursor.execute(query, (insta_id,))
-                    influencer = cursor.fetchone()
+        # Check for missing fields
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
 
-                    if not influencer:
-                        return jsonify({"error": "Influencer not found"}), 404
+        # Extract data from request
+        first_name = data.get("first_name")
+        last_name = data.get("last_name")
+        insta_id = data.get("insta_id")
+        email = data.get("email")
+        phone_number = data.get("phone_number")
+        followers = data.get("followers")
+        country = data.get("country")
+        state = data.get("state")
+        city = data.get("city")
+        category = data.get("category")
 
-                    return jsonify({
-                        "email": influencer["email"],
-                        "phone_number": influencer["phone_number"],
-                        "followers": influencer["followers"]
-                    }), 200
+        # Store data in database
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                insert_query = """
+                    INSERT INTO influencer_profile (
+                        first_name, last_name, insta_id, email, phone_number, followers,
+                        country, state, city, category
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (insta_id) DO UPDATE
+                    SET
+                        first_name = EXCLUDED.first_name,
+                        last_name = EXCLUDED.last_name,
+                        email = EXCLUDED.email,
+                        phone_number = EXCLUDED.phone_number,
+                        followers = EXCLUDED.followers,
+                        country = EXCLUDED.country,
+                        state = EXCLUDED.state,
+                        city = EXCLUDED.city,
+                        category = EXCLUDED.category
+                """
+                cursor.execute(insert_query, (
+                    first_name, last_name, insta_id, email, phone_number, followers,
+                    country, state, city, category
+                ))
+                conn.commit()
 
-        elif request.method == 'POST':
-            # Fetch Instagram data and send OTP
-            data = request.get_json()
-            insta_id = data.get('insta_id')
-
-            if not insta_id:
-                return jsonify({"error": "Instagram ID is required"}), 400
-
-            # Fetch Instagram data
-            cl = Client()
-            try:
-                insta_user = cl.user_info_by_username(insta_id)
-                email = insta_user.email
-                phone_number = insta_user.phone_number
-                followers = insta_user.follower_count
-            except Exception as e:
-                return jsonify({"error": f"Failed to fetch Instagram data: {str(e)}"}), 500
-
-            # Store fetched data in DB
-            with get_db_connection() as conn:
-                with conn.cursor() as cursor:
-                    insert_query = """
-                        INSERT INTO influencer_profile (insta_id, email, phone_number, followers)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (insta_id) DO UPDATE
-                        SET email = EXCLUDED.email, phone_number = EXCLUDED.phone_number, followers = EXCLUDED.followers
-                    """
-                    cursor.execute(insert_query, (insta_id, email, phone_number, followers))
-                    conn.commit()
-
-
-        elif request.method == 'PUT':
-            # Verify OTP and update profile
-            data = request.get_json()
-            email = data.get('email')
-            first_name = data.get('first_name')
-            last_name = data.get('last_name')
-            country = data.get('country')
-            state = data.get('state')
-            city = data.get('city')
-            category = data.get('category')
-
-            # Update profile in DB
-            with get_db_connection() as conn:
-                with conn.cursor() as cursor:
-                    update_query = """
-                        UPDATE influencer_profile
-                        SET First_name = %s, Last_name = %s, country = %s, state = %s, city = %s, category = %s
-                        WHERE email = %s
-                    """
-                    cursor.execute(update_query, (first_name, last_name, country, state, city, category, email))
-                    conn.commit()
-
-            return jsonify({"message": "Profile updated successfully"}), 200
+        return jsonify({"message": "Profile added/updated successfully"}), 200
 
     except Exception as e:
         logging.error(f"Error handling profile: {str(e)}")
