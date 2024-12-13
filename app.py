@@ -232,6 +232,7 @@ def profile():
         state = data.get("state")
         city = data.get("city")
         category = data.get("category")
+        country_code = data.get("country_code")
 
         # Store data in database
         with get_db_connection() as conn:
@@ -239,8 +240,8 @@ def profile():
                 insert_query = """
                     INSERT INTO influencer_profile (
                         first_name, last_name, insta_id, email, phone_number, followers,
-                        country, state, city, category
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        country, state, city, category,country_code
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
                     ON CONFLICT (insta_id) DO UPDATE
                     SET
                         first_name = EXCLUDED.first_name,
@@ -251,8 +252,8 @@ def profile():
                         country = EXCLUDED.country,
                         state = EXCLUDED.state,
                         city = EXCLUDED.city,
-                        category = EXCLUDED.category
-                        country_code = data.get("country_code")
+                        category = EXCLUDED.category,
+                        country_code = EXCLUDED.country_code
                 """
                  cursor.execute(insert_query, (
                     first_name, last_name, insta_id, email, phone_number, followers,
