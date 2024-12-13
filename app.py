@@ -7,6 +7,8 @@ from datetime import datetime
 import pytz
 import logging
 from psycopg2.extras import DictCursor
+from instagrapi import Client  # For fetching Instagram data
+import smtplib 
 
 app = Flask(__name__)  # Initialize Flask app
 
@@ -201,6 +203,104 @@ def get_campaigns():
     except Exception as e:
         logging.error(f"Error fetching campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-        
+
+@app.route('/profile', methods=['GET', 'POST', 'PUT'])
+def profile():
+    """Endpoint for managing influencer profile."""
+    try:
+        if request.method == 'GET':
+            # Fetch influencer data by Instagram ID
+            insta_id = request.args.get('insta_id')
+
+            if not insta_id:
+                return jsonify({"error": "Instagram ID is required"}), 400
+
+            with get_db_connection() as conn:
+                with conn.cursor(cursor_factory=DictCursor) as cursor:
+                    query = """
+                        SELECT email, phone_number, followers FROM influencer_profile WHERE insta_id = %s
+                    """
+                    cursor.execute(query, (insta_id,))
+                    influencer = cursor.fetchone()
+
+                    if not influencer:
+                        return jsonify({"error": "Influencer not found"}), 404
+
+                    return jsonify({
+                        "email": influencer["email"],
+                        "phone_number": influencer["phone_number"],
+                        "followers": influencer["followers"]
+                    }), 200
+
+        elif request.method == 'POST':
+            # Fetch Instagram data and send OTP
+            data = request.get_json()
+            insta_id = data.get('insta_id')
+
+            if not insta_id:
+                return jsonify({"error": "Instagram ID is required"}), 400
+
+            # Fetch Instagram data
+            cl = Client()
+            try:
+                insta_user = cl.user_info_by_username(insta_id)
+                email = insta_user.email
+                phone_number = insta_user.phone_number
+                followers = insta_user.follower_count
+            except Exception as e:
+                return jsonify({"error": f"Failed to fetch Instagram data: {str(e)}"}), 500
+
+            # Store fetched data in DB
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    insert_query = """
+                        INSERT INTO influencer_profile (insta_id, email, phone_number, followers)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (insta_id) DO UPDATE
+                        SET email = EXCLUDED.email, phone_number = EXCLUDED.phone_number, followers = EXCLUDED.followers
+                    """
+                    cursor.execute(insert_query, (insta_id, email, phone_number, followers))
+                    conn.commit()
+
+            return jsonify({"message": "OTP sent successfully", "email": email}), 200
+
+        elif request.method == 'PUT':
+            # Verify OTP and update profile
+            data = request.get_json()
+            email = data.get('email')
+            otp = data.get('otp')
+            first_name = data.get('first_name')
+            last_name = data.get('last_name')
+            country = data.get('country')
+            state = data.get('state')
+            city = data.get('city')
+            category = data.get('category')
+
+            if not email or not otp:
+                return jsonify({"error": "Email and OTP are required"}), 400
+
+            # Verify OTP
+            if otp_store.get(email) != int(otp):
+                return jsonify({"error": "Invalid OTP"}), 400
+
+            del otp_store[email]  # Remove OTP after successful verification
+
+            # Update profile in DB
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    update_query = """
+                        UPDATE influencer_profile
+                        SET First_name = %s, Last_name = %s, country = %s, state = %s, city = %s, category = %s
+                        WHERE email = %s
+                    """
+                    cursor.execute(update_query, (first_name, last_name, country, state, city, category, email))
+                    conn.commit()
+
+            return jsonify({"message": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        logging.error(f"Error handling profile: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
