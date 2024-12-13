@@ -204,7 +204,7 @@ def get_campaigns():
         logging.error(f"Error fetching campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/profile', methods=['POST'])
+@app.route('/getprofile', methods=['POST'])
 def profile():
     """
     Endpoint to add or update influencer profile details.
@@ -255,5 +255,46 @@ def profile():
         logging.error(f"Error handling profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
         
+@app.route('/profile/<user_id>', methods=['GET'])
+def get_profile(user_id):
+    """
+    Endpoint to get influencer profile details based on user_id.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Query to fetch the profile details for the given user_id
+                select_query = """
+                    SELECT first_name, last_name, insta_id, email, phone_number, followers,
+                           country, state, city, category, country_code
+                    FROM influencer_profile
+                    WHERE user_id = %s
+                """
+                cursor.execute(select_query, (user_id,))
+                profile = cursor.fetchone()
+
+                if profile:
+                    # Prepare response with the profile data
+                    profile_data = {
+                        "first_name": profile[0],
+                        "last_name": profile[1],
+                        "insta_id": profile[2],
+                        "email": profile[3],
+                        "phone_number": profile[4],
+                        "followers": profile[5],
+                        "country": profile[6],
+                        "state": profile[7],
+                        "city": profile[8],
+                        "category": profile[9],
+                        "country_code": profile[10]
+                    }
+                    return jsonify(profile_data), 200
+                else:
+                    return jsonify({"error": "Profile not found"}), 404
+
+    except Exception as e:
+        logging.error(f"Error fetching profile for user_id {user_id}: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
