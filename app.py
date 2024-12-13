@@ -155,7 +155,7 @@ def get_campaigns():
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=DictCursor) as cursor:
                 query = "SELECT * FROM campaigns WHERE user_id = %s"
-                cursor.execute(query, (str(user_id),))
+                cursor.execute(query, (user_id,))
                 campaigns = cursor.fetchall()
 
                 if not campaigns:
