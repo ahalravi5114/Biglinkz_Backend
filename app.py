@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 import pytz
 import logging
+from psycopg2.extras import DictCursor
 
 app = Flask(__name__)  # Initialize Flask app
 
@@ -192,6 +193,6 @@ def get_campaigns():
     except Exception as e:
         logging.error(f"Error fetching campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-                
+
 if __name__ == '__main__':
     app.run(debug=True)
