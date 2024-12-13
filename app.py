@@ -152,22 +152,46 @@ def get_campaigns():
             return jsonify({"error": "User ID is required"}), 400
 
         with get_db_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(cursor_factory=DictCursor) as cursor:
                 query = "SELECT * FROM campaigns WHERE user_id = %s"
-                cursor.execute(query, (user_id,))
+                cursor.execute(query, (str(user_id),))
                 campaigns = cursor.fetchall()
 
                 if not campaigns:
-                    return jsonify({"message": "No campaigns found for this user"}), 404
+                    return jsonify({"campaigns": []}), 200  # Return empty list with 200 OK
 
-                # Assuming campaigns have columns: campaign_id, title, description, etc.
-                campaign_list = [{"campaign_id": campaign[0], "title": campaign[1], "description": campaign[2]} for campaign in campaigns]
+                campaign_list = [{
+                    "campaign_id": campaign["id"],
+                    "brand_name": campaign["brand_name"],
+                    "brand_instagram_id": campaign["brand_instagram_id"],
+                    "product": campaign["product"],
+                    "website": campaign["website"],
+                    "email": campaign["email"],
+                    "caption": campaign["caption"],
+                    "hashtag": campaign["hashtag"],
+                    "tags": campaign["tags"],
+                    "content_type": campaign["content_type"],
+                    "deadline": campaign["deadline"],
+                    "target_followers": campaign["target_followers"],
+                    "influencer_gender": campaign["influencer_gender"],
+                    "influencer_location": campaign["influencer_location"],
+                    "campaign_title": campaign["campaign_title"],
+                    "target_reach": campaign["target_reach"],
+                    "budget": campaign["budget"],
+                    "goal": campaign["goal"],
+                    "manager_name": campaign["manager_name"],
+                    "contact_number": campaign["contact_number"],
+                    "rewards": campaign["rewards"],
+                    "status": campaign["status"],
+                    "start_date": campaign["start_date"],
+                    "end_date": campaign["end_date"]
+                } for campaign in campaigns]
 
                 return jsonify({"campaigns": campaign_list}), 200
 
     except Exception as e:
         logging.error(f"Error fetching campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-        
+                
 if __name__ == '__main__':
     app.run(debug=True)
