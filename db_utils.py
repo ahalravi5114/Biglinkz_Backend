@@ -13,36 +13,27 @@ def get_db_connection():
     return psycopg2.connect(DB_URL)
 
 def get_user_id_by_email(email):
-    """Fetch the user_id for a given email."""
-    try:
-        conn = get_db_connection()
+    with get_db_connection() as conn:
         with conn.cursor() as cursor:
             query = "SELECT user_id FROM user_data WHERE email = %s"
             cursor.execute(query, (email,))
             result = cursor.fetchone()
             return result[0] if result else None
-    except Exception as e:
-        print(f"Error fetching user_id for email {email}: {e}")
-        return None
-    finally:
-        conn.close()
 
 def create_campaign_in_db(data):
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
             query = """
                 INSERT INTO campaigns (
-                    user_id, brand_name, brand_instagram_id, product, website,
-                    caption, hashtag, tags, content_type, deadline, 
-                    target_followers, influencer_gender, influencer_location,
-                    campaign_title, target_reach, budget, goal, manager_name, 
-                    contact_number, rewards, start_date, end_date
+                    user_id, brand_name, brand_instagram_id, product, website, email,
+                    caption, hashtag, tags, content_type, deadline, target_followers,
+                    influencer_gender, influencer_location, campaign_title, target_reach,
+                    budget, goal, manager_name, contact_number, rewards, start_date, end_date
                 ) VALUES (
-                    %(user_id)s, %(brand_name)s, %(brand_instagram_id)s, %(product)s, %(website)s,
-                    %(caption)s, %(hashtag)s, %(tags)s, %(content_type)s, %(deadline)s,
-                    %(target_followers)s, %(influencer_gender)s, %(influencer_location)s,
-                    %(campaign_title)s, %(target_reach)s, %(budget)s, %(goal)s, %(manager_name)s,
-                    %(contact_number)s, %(rewards)s, %(start_date)s, %(end_date)s
+                    %(user_id)s, %(brand_name)s, %(brand_instagram_id)s, %(product)s, %(website)s, %(email)s,
+                    %(caption)s, %(hashtag)s, %(tags)s, %(content_type)s, %(deadline)s, %(target_followers)s,
+                    %(influencer_gender)s, %(influencer_location)s, %(campaign_title)s, %(target_reach)s,
+                    %(budget)s, %(goal)s, %(manager_name)s, %(contact_number)s, %(rewards)s, %(start_date)s, %(end_date)s
                 )
             """
             cursor.execute(query, data)

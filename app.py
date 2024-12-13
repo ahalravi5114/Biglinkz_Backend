@@ -108,37 +108,40 @@ def create_campaign():
     try:
         data = request.get_json()
 
+        # Validate required fields
         required_fields = [
-            'brand_name', 'brand_instagram_id', 'product', 'website', 'email', 
+            'brand_name', 'brand_instagram_id', 'product', 'website', 'email',
             'caption', 'hashtag', 'tags', 'content_type', 'deadline', 'target_followers',
             'influencer_gender', 'influencer_location', 'campaign_title', 'target_reach',
             'budget', 'goal', 'manager_name', 'contact_number', 'rewards',
             'start_date', 'end_date'
         ]
-
-        # Validate required fields
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({"error": f"Missing or empty required field: {field}"}), 400
 
-        # Fetch user ID based on email
-        user_id = get_user_id_by_email(data['email'])
+        # Log and validate email
+        email = data['email']
+        logging.debug(f"Received email: {email}")
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        # Fetch user ID from email
+        user_id = get_user_id_by_email(email)
         if not user_id:
             return jsonify({"error": "User with the provided email does not exist"}), 404
 
-        # Add user_id to the campaign data
+        # Add user_id to campaign data
         data['user_id'] = user_id
-
-        logging.debug(f"Creating campaign with data: {data}")
-
+        logging.debug(f"Final data passed to DB: {data}")
         # Create campaign in the database
         create_campaign_in_db(data)
 
         return jsonify({"message": "Campaign created successfully"}), 201
 
     except Exception as e:
-        logging.error(f"Error creating campaign: {e}")
-        return jsonify({"error": f"An error occurred: {e}"}), 500
-
+        logging.error(f"Error creating campaign: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        
 if __name__ == '__main__':
     app.run(debug=True)
