@@ -206,9 +206,11 @@ def get_campaigns():
 
 @app.route('/profile', methods=['POST'])
 def profile():
-    """Endpoint to add influencer profile details."""
+    """
+    Endpoint to add or update influencer profile details.
+    Expects profile details in JSON payload.
+    """
     try:
-        # Parse JSON input
         data = request.get_json()
 
         required_fields = [
@@ -216,34 +218,18 @@ def profile():
             "followers", "country", "state", "city", "category", "country_code"
         ]
 
-        # Check for missing fields
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
 
-        # Extract data from request
-        first_name = data.get("first_name")
-        last_name = data.get("last_name")
-        insta_id = data.get("insta_id")
-        email = data.get("email")
-        phone_number = data.get("phone_number")
-        followers = data.get("followers")
-        country = data.get("country")
-        state = data.get("state")
-        city = data.get("city")
-        category = data.get("category")
-        country_code = data.get("country_code")
-
-        # Store data in database
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 insert_query = """
                     INSERT INTO influencer_profile (
                         first_name, last_name, insta_id, email, phone_number, followers,
-                        country, state, city, category,country_code
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
-                    ON CONFLICT (insta_id) DO UPDATE
-                    SET
+                        country, state, city, category, country_code
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (insta_id) DO UPDATE SET
                         first_name = EXCLUDED.first_name,
                         last_name = EXCLUDED.last_name,
                         email = EXCLUDED.email,
@@ -255,14 +241,15 @@ def profile():
                         category = EXCLUDED.category,
                         country_code = EXCLUDED.country_code
                 """
-                 cursor.execute(insert_query, (
-                    first_name, last_name, insta_id, email, phone_number, followers,
-                    country, state, city, category, country_code
+                cursor.execute(insert_query, (
+                    data["first_name"], data["last_name"], data["insta_id"],
+                    data["email"], data["phone_number"], data["followers"],
+                    data["country"], data["state"], data["city"],
+                    data["category"], data["country_code"]
                 ))
                 conn.commit()
 
         return jsonify({"message": "Profile added/updated successfully"}), 200
-
     except Exception as e:
         logging.error(f"Error handling profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
