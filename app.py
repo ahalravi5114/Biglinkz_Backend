@@ -142,6 +142,32 @@ def create_campaign():
     except Exception as e:
         logging.error(f"Error creating campaign: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/get-campaigns', methods=['GET'])
+def get_campaigns():
+    """Endpoint for fetching campaigns created by a user."""
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({"error": "User ID is required"}), 400
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = "SELECT * FROM campaigns WHERE user_id = %s"
+                cursor.execute(query, (user_id,))
+                campaigns = cursor.fetchall()
+
+                if not campaigns:
+                    return jsonify({"message": "No campaigns found for this user"}), 404
+
+                # Assuming campaigns have columns: campaign_id, title, description, etc.
+                campaign_list = [{"campaign_id": campaign[0], "title": campaign[1], "description": campaign[2]} for campaign in campaigns]
+
+                return jsonify({"campaigns": campaign_list}), 200
+
+    except Exception as e:
+        logging.error(f"Error fetching campaigns: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
         
 if __name__ == '__main__':
     app.run(debug=True)
