@@ -213,7 +213,7 @@ def profile():
 
         required_fields = [
             "first_name", "last_name", "insta_id", "email", "phone_number",
-            "followers", "country", "state", "city", "category"
+            "followers", "country", "state", "city", "category", "country_code"
         ]
 
         # Check for missing fields
@@ -252,10 +252,11 @@ def profile():
                         state = EXCLUDED.state,
                         city = EXCLUDED.city,
                         category = EXCLUDED.category
+                        country_code = data.get("country_code")
                 """
-                cursor.execute(insert_query, (
+                 cursor.execute(insert_query, (
                     first_name, last_name, insta_id, email, phone_number, followers,
-                    country, state, city, category
+                    country, state, city, category, country_code
                 ))
                 conn.commit()
 
