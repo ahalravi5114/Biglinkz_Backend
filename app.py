@@ -130,9 +130,8 @@ def create_campaign():
         logging.debug(f"Creating campaign with data: {data}")
 
         campaign = create_campaign_in_db(data)
-
-        return jsonify({"message": "Campaign created successfully", "campaign": campaign}), 201
-
+        return jsonify({"message": "Campaign created successfully"}), 201
+        
     except Exception as e:
         logging.error(f"Error creating campaign: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
