@@ -27,22 +27,27 @@ def get_user_id_by_email(email):
     finally:
         conn.close()
 
-def create_campaign_in_db(campaign_details):
-    """Insert campaign details into the database and return the created campaign."""
-    # Parse the start_date and end_date into datetime objects
-    start_date = datetime.strptime(campaign_details['start_date'], '%Y-%m-%d')
-    end_date = datetime.strptime(campaign_details['end_date'], '%Y-%m-%d')
-
-    query = """
-    INSERT INTO campaigns (
-        brand_name, brand_instagram_id, product, website, email, 
-        caption, hashtag, tags, content_type, deadline, target_followers,
-        influencer_gender, influencer_location, campaign_title, target_reach,
-        budget, goal, manager_name, contact_number, rewards, user_id, start_date, end_date, status
-    ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active'
-    ) RETURNING *
-    """
+def create_campaign_in_db(data):
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            query = """
+                INSERT INTO campaigns (
+                    user_id, brand_name, brand_instagram_id, product, website,
+                    caption, hashtag, tags, content_type, deadline, 
+                    target_followers, influencer_gender, influencer_location,
+                    campaign_title, target_reach, budget, goal, manager_name, 
+                    contact_number, rewards, start_date, end_date
+                ) VALUES (
+                    %(user_id)s, %(brand_name)s, %(brand_instagram_id)s, %(product)s, %(website)s,
+                    %(caption)s, %(hashtag)s, %(tags)s, %(content_type)s, %(deadline)s,
+                    %(target_followers)s, %(influencer_gender)s, %(influencer_location)s,
+                    %(campaign_title)s, %(target_reach)s, %(budget)s, %(goal)s, %(manager_name)s,
+                    %(contact_number)s, %(rewards)s, %(start_date)s, %(end_date)s
+                )
+            """
+            cursor.execute(query, data)
+            conn.commit()
+            
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:

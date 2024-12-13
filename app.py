@@ -121,21 +121,24 @@ def create_campaign():
             if field not in data or not data[field]:
                 return jsonify({"error": f"Missing or empty required field: {field}"}), 400
 
+        # Fetch user ID based on email
         user_id = get_user_id_by_email(data['email'])
         if not user_id:
             return jsonify({"error": "User with the provided email does not exist"}), 404
 
+        # Add user_id to the campaign data
         data['user_id'] = user_id
 
         logging.debug(f"Creating campaign with data: {data}")
 
-        campaign = create_campaign_in_db(data)
-        return jsonify({"message": "Campaign created successfully"}), 201
-        
-    except Exception as e:
-        logging.error(f"Error creating campaign: {str(e)}")
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        # Create campaign in the database
+        create_campaign_in_db(data)
 
+        return jsonify({"message": "Campaign created successfully"}), 201
+
+    except Exception as e:
+        logging.error(f"Error creating campaign: {e}")
+        return jsonify({"error": f"An error occurred: {e}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
