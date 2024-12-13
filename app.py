@@ -208,13 +208,13 @@ def get_campaigns():
 def profile():
     """
     Endpoint to add or update influencer profile details.
-    Expects profile details in JSON payload.
+    Expects profile details in JSON payload along with user_id.
     """
     try:
         data = request.get_json()
 
         required_fields = [
-            "first_name", "last_name", "insta_id", "email", "phone_number",
+            "user_id", "first_name", "last_name", "insta_id", "email", "phone_number",
             "followers", "country", "state", "city", "category", "country_code"
         ]
 
@@ -226,10 +226,11 @@ def profile():
             with conn.cursor() as cursor:
                 insert_query = """
                     INSERT INTO influencer_profile (
-                        first_name, last_name, insta_id, email, phone_number, followers,
+                        user_id, first_name, last_name, insta_id, email, phone_number, followers,
                         country, state, city, category, country_code
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (insta_id) DO UPDATE SET
+                        user_id = EXCLUDED.user_id,
                         first_name = EXCLUDED.first_name,
                         last_name = EXCLUDED.last_name,
                         email = EXCLUDED.email,
@@ -242,7 +243,7 @@ def profile():
                         country_code = EXCLUDED.country_code
                 """
                 cursor.execute(insert_query, (
-                    data["first_name"], data["last_name"], data["insta_id"],
+                    data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
                     data["email"], data["phone_number"], data["followers"],
                     data["country"], data["state"], data["city"],
                     data["category"], data["country_code"]
@@ -253,6 +254,6 @@ def profile():
     except Exception as e:
         logging.error(f"Error handling profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
+        
 if __name__ == '__main__':
     app.run(debug=True)
