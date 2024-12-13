@@ -262,28 +262,17 @@ def profile():
                     cursor.execute(insert_query, (insta_id, email, phone_number, followers))
                     conn.commit()
 
-            return jsonify({"message": "OTP sent successfully", "email": email}), 200
 
         elif request.method == 'PUT':
             # Verify OTP and update profile
             data = request.get_json()
             email = data.get('email')
-            otp = data.get('otp')
             first_name = data.get('first_name')
             last_name = data.get('last_name')
             country = data.get('country')
             state = data.get('state')
             city = data.get('city')
             category = data.get('category')
-
-            if not email or not otp:
-                return jsonify({"error": "Email and OTP are required"}), 400
-
-            # Verify OTP
-            if otp_store.get(email) != int(otp):
-                return jsonify({"error": "Invalid OTP"}), 400
-
-            del otp_store[email]  # Remove OTP after successful verification
 
             # Update profile in DB
             with get_db_connection() as conn:
