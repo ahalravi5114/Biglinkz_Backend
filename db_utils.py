@@ -42,17 +42,17 @@ def create_campaign_in_db(data):
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            campaign_details['status'] = 'active'
+            data['status'] = 'active'
             cursor.execute(query, (
-                campaign_details['brand_name'], campaign_details['brand_instagram_id'], campaign_details['product'],
-                campaign_details['website'], campaign_details['email'], 
-                campaign_details['caption'], campaign_details['hashtag'], campaign_details['tags'],
-                campaign_details['content_type'], campaign_details['deadline'], campaign_details['target_followers'],
-                campaign_details['influencer_gender'], campaign_details['influencer_location'], 
-                campaign_details['campaign_title'], campaign_details['target_reach'], 
-                campaign_details['budget'], campaign_details['goal'], 
-                campaign_details['manager_name'], campaign_details['contact_number'], campaign_details['rewards'],
-                campaign_details['user_id'], start_date, end_date, campaign_details['status']
+                data['brand_name'], data['brand_instagram_id'], data['product'],
+                data['website'], data['email'], 
+                data['caption'], data['hashtag'], data['tags'],
+                data['content_type'], data['deadline'], data['target_followers'],
+                data['influencer_gender'], data['influencer_location'], 
+                data['campaign_title'], data['target_reach'], 
+                data['budget'], data['goal'], 
+                data['manager_name'], data['contact_number'], data['rewards'],
+                data['user_id'], start_date, end_date, data['status']
             ))
 
             campaign = cursor.fetchone()
