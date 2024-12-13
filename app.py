@@ -152,11 +152,19 @@ def get_campaigns():
         if not user_id:
             return jsonify({"error": "User ID is required"}), 400
 
+        # Log the user_id being passed
+        logging.debug(f"Fetching campaigns for user_id: {user_id}")
+
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=DictCursor) as cursor:
                 query = "SELECT * FROM campaigns WHERE user_id = %s"
+                # Log the query and the parameters
+                logging.debug(f"Executing query: {query} with user_id: {user_id}")
                 cursor.execute(query, (user_id,))
                 campaigns = cursor.fetchall()
+
+                # Log the campaigns fetched from the database
+                logging.debug(f"Campaigns found: {campaigns}")
 
                 if not campaigns:
                     return jsonify({"campaigns": []}), 200  # Return empty list with 200 OK
@@ -193,6 +201,6 @@ def get_campaigns():
     except Exception as e:
         logging.error(f"Error fetching campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
+        
 if __name__ == '__main__':
     app.run(debug=True)
