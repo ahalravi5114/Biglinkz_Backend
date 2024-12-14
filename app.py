@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection
+from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection, generate_otp, send_otp_via_email
 import os
 from datetime import datetime
 import pytz
@@ -9,6 +9,8 @@ import logging
 from psycopg2.extras import DictCursor
 from instagrapi import Client  # For fetching Instagram data
 import smtplib 
+from flask_mail import Mail
+
 
 app = Flask(__name__)  # Initialize Flask app
 
@@ -17,6 +19,17 @@ CORS(app)
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  # Your email here
+app.config['MAIL_PASSWORD'] = 'your-email-password'  # Your email password here
+
+mail = Mail(app)
+
+logger = logging.getLogger(__name__)
+
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -301,29 +314,31 @@ def get_eligible_campaigns():
     """
     Endpoint for influencers to see campaigns they are eligible for.
     Compares influencer's followers count with target_followers of campaigns.
+    Fetches influencer data using user_id.
     """
     try:
-        # Get the insta_id from the query parameters
-        insta_id = request.args.get('insta_id')
+        # Get the user_id from the query parameters
+        user_id = request.args.get('user_id')
 
-        if not insta_id:
-            return jsonify({"error": "Instagram ID is required"}), 400
+        if not user_id:
+            return jsonify({"error": "User ID is required"}), 400
 
-        # Fetch influencer's followers count from the database
+        # Fetch influencer's insta_id and followers count from the database based on user_id
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=DictCursor) as cursor:  # Use DictCursor here
                 influencer_query = """
-                    SELECT followers
+                    SELECT insta_id, followers
                     FROM influencer_profile
-                    WHERE insta_id = %s
+                    WHERE user_id = %s
                 """
-                cursor.execute(influencer_query, (insta_id,))
+                cursor.execute(influencer_query, (user_id,))
                 influencer = cursor.fetchone()
 
                 if not influencer:
                     return jsonify({"error": "Influencer profile not found"}), 404
 
-                influencer_followers = influencer["followers"]  # Use dictionary access
+                insta_id = influencer["insta_id"]  # Access as a dictionary
+                influencer_followers = influencer["followers"]
 
                 # Fetch campaigns where the influencer meets the target followers criteria
                 campaign_query = """
@@ -373,6 +388,33 @@ def get_eligible_campaigns():
     except Exception as e:
         logging.error(f"Error fetching eligible campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/send-otp', methods=['POST'])
+def send_otp():
+    """
+    Route to handle OTP generation and email sending.
+    """
+    data = request.json
+    email = data.get('email')
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    try:
+        # Generate OTP
+        otp = generate_otp()
+
+        # Send OTP via email
+        send_otp_via_email(mail, email, otp)
+
+        # Log success
+        logger.info(f"OTP sent to {email} successfully")
+
+        return jsonify({'message': f"OTP sent to {email}"}), 200
+
+    except Exception as e:
+        logger.error(f"Error while sending OTP to {email}: {str(e)}")
+        return jsonify({'error': 'Failed to send OTP'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
