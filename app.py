@@ -389,11 +389,8 @@ def get_eligible_campaigns():
         logging.error(f"Error fetching eligible campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/send-otp', methods=['POST'])
+@app.route('/send_otp', methods=['POST'])
 def send_otp():
-    """
-    Route to handle OTP generation and email sending.
-    """
     data = request.json
     email = data.get('email')
 
@@ -410,11 +407,15 @@ def send_otp():
         # Log success
         logger.info(f"OTP sent to {email} successfully")
 
+        # Return success message without OTP (for security)
         return jsonify({'message': f"OTP sent to {email}"}), 200
 
     except Exception as e:
+        # Log the error with more specific details
         logger.error(f"Error while sending OTP to {email}: {str(e)}")
-        return jsonify({'error': 'Failed to send OTP'}), 500
 
+        # Return error response with more detailed message
+        return jsonify({'error': f'Failed to send OTP due to {str(e)}'}), 500
+        
 if __name__ == '__main__':
     app.run(debug=True)
