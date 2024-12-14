@@ -294,16 +294,16 @@ def get_profile(user_id):
         logging.error(f"Error fetching profile for user_id {user_id}: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/eligible-campaigns', methods=['GET', 'POST'])
+@app.route('/eligible-campaigns', methods=['GET'])
 def get_eligible_campaigns():
     """
     Endpoint for influencers to see campaigns they are eligible for.
     Compares influencer's followers count with target_followers of campaigns.
     """
     try:
-        # Parse request JSON
-        data = request.get_json()
-        insta_id = data.get('insta_id')  # Influencer's Instagram ID
+        # Get the insta_id from the query parameters
+        insta_id = request.args.get('insta_id')
+
         if not insta_id:
             return jsonify({"error": "Instagram ID is required"}), 400
 
