@@ -294,5 +294,84 @@ def get_profile(user_id):
         logging.error(f"Error fetching profile for user_id {user_id}: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/eligible-campaigns', methods=['POST'])
+def get_eligible_campaigns():
+    """
+    Endpoint for influencers to see campaigns they are eligible for.
+    Compares influencer's followers count with target_followers of campaigns.
+    """
+    try:
+        # Parse request JSON
+        data = request.get_json()
+        insta_id = data.get('insta_id')  # Influencer's Instagram ID
+        if not insta_id:
+            return jsonify({"error": "Instagram ID is required"}), 400
+
+        # Fetch influencer's followers count from the database
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                influencer_query = """
+                    SELECT followers
+                    FROM influencer_profile
+                    WHERE insta_id = %s
+                """
+                cursor.execute(influencer_query, (insta_id,))
+                influencer = cursor.fetchone()
+
+                if not influencer:
+                    return jsonify({"error": "Influencer profile not found"}), 404
+
+                influencer_followers = influencer[0]
+
+                # Fetch campaigns where the influencer meets the target followers criteria
+                campaign_query = """
+                    SELECT *
+                    FROM campaigns
+                    WHERE target_followers <= %s
+                """
+                cursor.execute(campaign_query, (influencer_followers,))
+                campaigns = cursor.fetchall()
+
+                # Return the eligible campaigns
+                if not campaigns:
+                    return jsonify({"message": "No eligible campaigns found"}), 200
+
+                eligible_campaigns = [
+                    {
+                        "campaign_id": campaign["id"],
+                        "brand_name": campaign["brand_name"],
+                        "brand_instagram_id": campaign["brand_instagram_id"],
+                        "product": campaign["product"],
+                        "website": campaign["website"],
+                        "email": campaign["email"],
+                        "caption": campaign["caption"],
+                        "hashtag": campaign["hashtag"],
+                        "tags": campaign["tags"],
+                        "content_type": campaign["content_type"],
+                        "deadline": campaign["deadline"],
+                        "target_followers": campaign["target_followers"],
+                        "influencer_gender": campaign["influencer_gender"],
+                        "influencer_location": campaign["influencer_location"],
+                        "campaign_title": campaign["campaign_title"],
+                        "target_reach": campaign["target_reach"],
+                        "budget": campaign["budget"],
+                        "goal": campaign["goal"],
+                        "manager_name": campaign["manager_name"],
+                        "contact_number": campaign["contact_number"],
+                        "rewards": campaign["rewards"],
+                        "status": campaign["status"],
+                        "start_date": campaign["start_date"],
+                        "end_date": campaign["end_date"]
+                    }
+                    for campaign in campaigns
+                ]
+
+                return jsonify({"eligible_campaigns": eligible_campaigns}), 200
+
+    except Exception as e:
+        logging.error(f"Error fetching eligible campaigns: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
