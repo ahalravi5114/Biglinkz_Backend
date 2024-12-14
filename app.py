@@ -294,7 +294,7 @@ def get_profile(user_id):
         logging.error(f"Error fetching profile for user_id {user_id}: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/eligible-campaigns', methods=['POST'])
+@app.route('/eligible-campaigns', methods=['GET', 'POST'])
 def get_eligible_campaigns():
     """
     Endpoint for influencers to see campaigns they are eligible for.
