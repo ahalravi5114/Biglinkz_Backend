@@ -2,6 +2,13 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
 from datetime import datetime
+import secrets
+import string
+from flask_mail import Message, Mail
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # Get the database URL from environment variables
 DB_URL = os.getenv('DATABASE_URL')
@@ -11,6 +18,27 @@ if not DB_URL:
 # Establishing a connection to Neon DB
 def get_db_connection():
     return psycopg2.connect(DB_URL)
+
+def generate_otp(length=6):
+    """
+    Generate a random OTP of the given length (default 6 digits).
+    """
+    characters = string.digits  # OTP with digits
+    otp = ''.join(secrets.choice(characters) for _ in range(length))
+    return otp
+
+def send_otp_via_email(mail, email, otp):
+    """
+    Send OTP to the provided email address using Flask-Mail.
+    """
+    try:
+        msg = Message("Your OTP Code", sender="your-email@gmail.com", recipients=[email])
+        msg.body = f"Your OTP code is {otp}"
+        mail.send(msg)
+        logger.info(f"OTP sent to {email} successfully.")
+    except Exception as e:
+        logger.error(f"Failed to send OTP to {email}: {str(e)}")
+        raise
 
 # Get the user ID by email
 def get_user_id_by_email(email):
