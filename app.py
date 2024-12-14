@@ -215,7 +215,7 @@ def profile():
 
         required_fields = [
             "user_id", "first_name", "last_name", "insta_id", "email", "phone_number",
-            "followers", "country", "state", "city", "category", "country_code"
+            "followers", "country", "state", "city", "category"
         ]
 
         missing_fields = [field for field in required_fields if field not in data]
@@ -240,13 +240,12 @@ def profile():
                         state = EXCLUDED.state,
                         city = EXCLUDED.city,
                         category = EXCLUDED.category,
-                        country_code = EXCLUDED.country_code
                 """
                 cursor.execute(insert_query, (
                     data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
                     data["email"], data["phone_number"], data["followers"],
                     data["country"], data["state"], data["city"],
-                    data["category"], data["country_code"]
+                    data["category"]
                 ))
                 conn.commit()
 
@@ -266,7 +265,7 @@ def get_profile(user_id):
                 # Query to fetch the profile details for the given user_id
                 select_query = """
                     SELECT first_name, last_name, insta_id, email, phone_number, followers,
-                           country, state, city, category, country_code
+                           country, state, city, category
                     FROM influencer_profile
                     WHERE user_id = %s
                 """
@@ -286,7 +285,6 @@ def get_profile(user_id):
                         "state": profile[7],
                         "city": profile[8],
                         "category": profile[9],
-                        "country_code": profile[10]
                     }
                     return jsonify(profile_data), 200
                 else:
