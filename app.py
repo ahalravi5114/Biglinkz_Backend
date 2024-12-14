@@ -294,6 +294,8 @@ def get_profile(user_id):
         logging.error(f"Error fetching profile for user_id {user_id}: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+from psycopg2.extras import DictCursor
+
 @app.route('/eligible-campaigns', methods=['GET'])
 def get_eligible_campaigns():
     """
@@ -309,7 +311,7 @@ def get_eligible_campaigns():
 
         # Fetch influencer's followers count from the database
         with get_db_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(cursor_factory=DictCursor) as cursor:  # Use DictCursor here
                 influencer_query = """
                     SELECT followers
                     FROM influencer_profile
@@ -321,7 +323,7 @@ def get_eligible_campaigns():
                 if not influencer:
                     return jsonify({"error": "Influencer profile not found"}), 404
 
-                influencer_followers = influencer[0]
+                influencer_followers = influencer["followers"]  # Use dictionary access
 
                 # Fetch campaigns where the influencer meets the target followers criteria
                 campaign_query = """
@@ -338,7 +340,7 @@ def get_eligible_campaigns():
 
                 eligible_campaigns = [
                     {
-                        "campaign_id": campaign["id"],
+                        "campaign_id": campaign["id"],  # Access as a dictionary
                         "brand_name": campaign["brand_name"],
                         "brand_instagram_id": campaign["brand_instagram_id"],
                         "product": campaign["product"],
@@ -371,7 +373,6 @@ def get_eligible_campaigns():
     except Exception as e:
         logging.error(f"Error fetching eligible campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
