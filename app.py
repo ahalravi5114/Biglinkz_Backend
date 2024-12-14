@@ -240,8 +240,8 @@ def profile():
                 insert_query = """
                     INSERT INTO influencer_profile (
                         user_id, first_name, last_name, insta_id, email, phone_number, followers,
-                        country, state, city, category, country_code
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        country, state, city, category
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (insta_id) DO UPDATE SET
                         user_id = EXCLUDED.user_id,
                         first_name = EXCLUDED.first_name,
@@ -252,7 +252,7 @@ def profile():
                         country = EXCLUDED.country,
                         state = EXCLUDED.state,
                         city = EXCLUDED.city,
-                        category = EXCLUDED.category,
+                        category = EXCLUDED.category
                 """
                 cursor.execute(insert_query, (
                     data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
