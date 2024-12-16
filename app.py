@@ -416,7 +416,7 @@ def send_otp():
         app.logger.info(f"OTP sent to {email} successfully")
 
         # Return success message without OTP (for security)
-        return jsonify({'message': f"OTP sent to {email}",'otp':f"OTP sent is {otp}"}), 200
+        return jsonify({'message': f"OTP sent to {email}",'otp':f"{otp}"}), 200
 
     except Exception as e:
         # Log the error with more specific details
