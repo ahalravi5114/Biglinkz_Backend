@@ -6,6 +6,8 @@ import secrets
 import string
 from flask_mail import Message, Mail
 import logging
+from email.mime.text import MIMEText
+
 
 logger = logging.getLogger(__name__)
 
@@ -19,26 +21,33 @@ if not DB_URL:
 def get_db_connection():
     return psycopg2.connect(DB_URL)
 
-def generate_otp(length=6):
-    """
-    Generate a random OTP of the given length (default 6 digits).
-    """
-    characters = string.digits  # OTP with digits
-    otp = ''.join(secrets.choice(characters) for _ in range(length))
-    return otp
+def generate_otp():
+    import random
+    return str(random.randint(100000, 999999))
 
-def send_otp_via_email(mail, email, otp):
-    """
-    Send OTP to the provided email address using Flask-Mail.
-    """
+# Function to send OTP email
+def send_otp_via_email(sender_email, app_password, recipient_email, otp):
     try:
-        msg = Message("Your OTP Code", sender="your-email@gmail.com", recipients=[email])
-        msg.body = f"Your OTP code is {otp}"
-        mail.send(msg)
-        logger.info(f"OTP sent to {email} successfully.")
+        # Set up SMTP server
+        mail = smtplib.SMTP('smtp.gmail.com', 587)
+        mail.starttls()
+
+        # Log in with App Password
+        mail.login(sender_email, app_password)
+
+        # Prepare the email content
+        subject = "Your OTP Code"
+        body = f"Your OTP code is: {otp}. It will expire in 5 minutes."
+        message = MIMEText(body, 'plain')
+        message['Subject'] = subject
+        message['From'] = sender_email
+        message['To'] = recipient_email
+
+        # Send the email
+        mail.sendmail(sender_email, recipient_email, message.as_string())
+        mail.quit()
     except Exception as e:
-        logger.error(f"Failed to send OTP to {email}: {str(e)}")
-        raise
+        raise Exception(f"Failed to send email: {str(e)}")
 
 # Get the user ID by email
 def get_user_id_by_email(email):

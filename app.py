@@ -10,6 +10,7 @@ from psycopg2.extras import DictCursor
 from instagrapi import Client  # For fetching Instagram data
 import smtplib 
 from flask_mail import Mail
+from email.mime.text import MIMEText
 
 
 app = Flask(__name__)  # Initialize Flask app
@@ -401,20 +402,27 @@ def send_otp():
         # Generate OTP
         otp = generate_otp()
 
+        # Fetch sender email and App Password from environment variables
+        sender_email = os.getenv('EMAIL')
+        app_password = os.getenv('APP_PASSWORD')
+
+        if not sender_email or not app_password:
+            return jsonify({'error': 'Server email configuration is missing'}), 500
+
         # Send OTP via email
-        send_otp_via_email(mail, email, otp)
+        send_otp_via_email(sender_email, app_password, email, otp)
 
         # Log success
-        logger.info(f"OTP sent to {email} successfully")
+        app.logger.info(f"OTP sent to {email} successfully")
 
         # Return success message without OTP (for security)
         return jsonify({'message': f"OTP sent to {email}"}), 200
 
     except Exception as e:
         # Log the error with more specific details
-        logger.error(f"Error while sending OTP to {email}: {str(e)}")
+        app.logger.error(f"Error while sending OTP to {email}: {str(e)}")
 
-        # Return error response with more detailed message
+        # Return error response with detailed message
         return jsonify({'error': f'Failed to send OTP due to {str(e)}'}), 500
         
 if __name__ == '__main__':
