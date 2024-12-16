@@ -7,6 +7,8 @@ import string
 from flask_mail import Message, Mail
 import logging
 from email.mime.text import MIMEText
+import smtplib
+from flask import Flask, request, jsonify
 
 
 logger = logging.getLogger(__name__)
