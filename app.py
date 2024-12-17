@@ -11,6 +11,7 @@ from instagrapi import Client  # For fetching Instagram data
 import smtplib 
 from flask_mail import Mail
 from email.mime.text import MIMEText
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)  # Initialize Flask app
@@ -30,6 +31,10 @@ app.config['MAIL_PASSWORD'] = 'your-email-password'  # Your email password here
 mail = Mail(app)
 
 logger = logging.getLogger(__name__)
+
+UPLOAD_FOLDER = './uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 @app.route('/login', methods=['POST'])
@@ -121,37 +126,58 @@ def signup():
 
 @app.route('/create-campaign', methods=['POST'])
 def create_campaign():
-    """Endpoint for creating a new campaign."""
+    """Endpoint for creating a new campaign with file uploads."""
     try:
-        data = request.get_json()
+        # Use form data for both text and file fields
+        data = request.form.to_dict()
+        files = request.files
 
-        # Validate required fields
+        # Validate required fields, including files
         required_fields = [
             'brand_name', 'brand_instagram_id', 'product', 'website', 'email',
             'caption', 'hashtag', 'tags', 'content_type', 'deadline', 'target_followers',
             'influencer_gender', 'influencer_location', 'campaign_title', 'target_reach',
             'budget', 'goal', 'manager_name', 'contact_number', 'rewards',
-            'start_date', 'end_date'
+            'start_date', 'end_date', 'brand_logo', 'campaign_assets'
         ]
+
         for field in required_fields:
             if field not in data or not data[field]:
-                return jsonify({"error": f"Missing or empty required field: {field}"}), 400
+                if field in ['brand_logo', 'campaign_assets']:  # Check files for these fields
+                    if field == 'brand_logo' and 'brand_logo' not in files:
+                        return jsonify({"error": f"Missing or empty required field: {field}"}), 400
+                    if field == 'campaign_assets' and len(files.getlist('campaign_assets')) == 0:
+                        return jsonify({"error": f"Missing or empty required field: {field}"}), 400
+                else:
+                    return jsonify({"error": f"Missing or empty required field: {field}"}), 400
 
-        # Log and validate email
+        # Validate email
         email = data['email']
-        logging.debug(f"Received email: {email}")
-        if not email:
-            return jsonify({"error": "Email is required"}), 400
-
-        # Fetch user ID from email
         user_id = get_user_id_by_email(email)
         if not user_id:
             return jsonify({"error": "User with the provided email does not exist"}), 404
 
         # Add user_id to campaign data
         data['user_id'] = user_id
-        logging.debug(f"Final data passed to DB: {data}")
-        # Create campaign in the database
+
+        # Handle brand logo upload
+        brand_logo = files.get('brand_logo')
+        logo_filename = secure_filename(brand_logo.filename)
+        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo_filename)
+        brand_logo.save(logo_path)
+        data['brand_logo'] = logo_path  # Store the file path in the campaign data
+
+        # Handle campaign assets upload (multiple files)
+        asset_files = files.getlist('campaign_assets')  # Allow multiple files for assets
+        asset_paths = []
+        for asset in asset_files:
+            asset_filename = secure_filename(asset.filename)
+            asset_path = os.path.join(app.config['UPLOAD_FOLDER'], asset_filename)
+            asset.save(asset_path)
+            asset_paths.append(asset_path)
+        data['campaign_assets'] = ','.join(asset_paths)  # Store asset paths as a comma-separated string
+
+        # Insert campaign into the database
         create_campaign_in_db(data)
 
         return jsonify({"message": "Campaign created successfully"}), 201
@@ -162,7 +188,7 @@ def create_campaign():
 
 @app.route('/get-campaigns', methods=['GET'])
 def get_campaigns():
-    """Endpoint for fetching campaigns created by a user."""
+    """Endpoint for fetching campaigns created by a user, including brand logo and campaign assets."""
     try:
         user_id = request.args.get('user_id')
         if not user_id:
@@ -185,32 +211,40 @@ def get_campaigns():
                 if not campaigns:
                     return jsonify({"campaigns": []}), 200  # Return empty list with 200 OK
 
-                campaign_list = [{
-                    "campaign_id": campaign["id"],
-                    "brand_name": campaign["brand_name"],
-                    "brand_instagram_id": campaign["brand_instagram_id"],
-                    "product": campaign["product"],
-                    "website": campaign["website"],
-                    "email": campaign["email"],
-                    "caption": campaign["caption"],
-                    "hashtag": campaign["hashtag"],
-                    "tags": campaign["tags"],
-                    "content_type": campaign["content_type"],
-                    "deadline": campaign["deadline"],
-                    "target_followers": campaign["target_followers"],
-                    "influencer_gender": campaign["influencer_gender"],
-                    "influencer_location": campaign["influencer_location"],
-                    "campaign_title": campaign["campaign_title"],
-                    "target_reach": campaign["target_reach"],
-                    "budget": campaign["budget"],
-                    "goal": campaign["goal"],
-                    "manager_name": campaign["manager_name"],
-                    "contact_number": campaign["contact_number"],
-                    "rewards": campaign["rewards"],
-                    "status": campaign["status"],
-                    "start_date": campaign["start_date"],
-                    "end_date": campaign["end_date"]
-                } for campaign in campaigns]
+                campaign_list = []
+                for campaign in campaigns:
+                    # Extract paths to brand logo and assets
+                    brand_logo_path = campaign.get("brand_logo", "")
+                    campaign_assets = campaign.get("campaign_assets", "").split(',') if campaign.get("campaign_assets") else []
+
+                    campaign_list.append({
+                        "campaign_id": campaign["id"],
+                        "brand_name": campaign["brand_name"],
+                        "brand_instagram_id": campaign["brand_instagram_id"],
+                        "product": campaign["product"],
+                        "website": campaign["website"],
+                        "email": campaign["email"],
+                        "caption": campaign["caption"],
+                        "hashtag": campaign["hashtag"],
+                        "tags": campaign["tags"],
+                        "content_type": campaign["content_type"],
+                        "deadline": campaign["deadline"],
+                        "target_followers": campaign["target_followers"],
+                        "influencer_gender": campaign["influencer_gender"],
+                        "influencer_location": campaign["influencer_location"],
+                        "campaign_title": campaign["campaign_title"],
+                        "target_reach": campaign["target_reach"],
+                        "budget": campaign["budget"],
+                        "goal": campaign["goal"],
+                        "manager_name": campaign["manager_name"],
+                        "contact_number": campaign["contact_number"],
+                        "rewards": campaign["rewards"],
+                        "status": campaign["status"],
+                        "start_date": campaign["start_date"],
+                        "end_date": campaign["end_date"],
+                        "brand_logo": brand_logo_path,  # Add brand logo path
+                        "campaign_assets": campaign_assets  # Add campaign assets paths
+                    })
 
                 return jsonify({"campaigns": campaign_list}), 200
 
@@ -267,7 +301,11 @@ def profile():
     except Exception as e:
         logging.error(f"Error handling profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-        
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    
 @app.route('/profile/<user_id>', methods=['GET'])
 def get_profile(user_id):
     """
@@ -424,6 +462,7 @@ def send_otp():
 
         # Return error response with detailed message
         return jsonify({'error': f'Failed to send OTP due to {str(e)}'}), 500
+
         
 if __name__ == '__main__':
     app.run(debug=True)
