@@ -134,7 +134,7 @@ def create_campaign():
             'caption', 'hashtag', 'tags', 'content_type', 'deadline', 'target_followers',
             'influencer_gender', 'influencer_location', 'campaign_title', 'target_reach',
             'budget', 'goal', 'manager_name', 'contact_number', 'rewards',
-            'start_date', 'end_date', 'brand_logo', 'campaign_assets'
+            'start_date', 'end_date', 'brand_logo', 'campaign_assets','description'
         ]
 
         for field in required_fields:
@@ -239,7 +239,8 @@ def get_campaigns():
                         "start_date": campaign["start_date"],
                         "end_date": campaign["end_date"],
                         "brand_logo": brand_logo_path,  # Add brand logo path
-                        "campaign_assets": campaign_assets  # Add campaign assets paths
+                        "campaign_assets": campaign_assets,
+                        "description": campaign["description"] # Add campaign assets paths
                     })
 
                 return jsonify({"campaigns": campaign_list}), 200
