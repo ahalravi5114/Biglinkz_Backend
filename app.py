@@ -15,7 +15,7 @@ from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)  # Initialize Flask app
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "https://xv3w9j.csb.app"}})
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
