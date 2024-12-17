@@ -15,12 +15,7 @@ from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)  # Initialize Flask app
-
-# Enable CORS for all origins and methods
 CORS(app)
-
-# Setup logging
-logging.basicConfig(level=logging.DEBUG)
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -30,12 +25,13 @@ app.config['MAIL_PASSWORD'] = 'your-email-password'  # Your email password here
 
 mail = Mail(app)
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
 
 UPLOAD_FOLDER = './uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -305,7 +301,7 @@ def profile():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    
+
 @app.route('/profile/<user_id>', methods=['GET'])
 def get_profile(user_id):
     """
