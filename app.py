@@ -131,7 +131,7 @@ def create_campaign():
         # Validate required fields, including files
         required_fields = [
             'brand_name', 'brand_instagram_id', 'product', 'website', 'email',
-            'caption', 'hashtag', 'tags', 'content_type', 'deadline', 'target_followers',
+            'caption', 'hashtag', 'tags', 'content_type', 'target_followers',
             'influencer_gender', 'influencer_location', 'campaign_title', 'target_reach',
             'budget', 'goal', 'manager_name', 'contact_number', 'rewards',
             'start_date', 'end_date', 'brand_logo', 'campaign_assets','description'
@@ -224,7 +224,6 @@ def get_campaigns():
                         "hashtag": campaign["hashtag"],
                         "tags": campaign["tags"],
                         "content_type": campaign["content_type"],
-                        "deadline": campaign["deadline"],
                         "target_followers": campaign["target_followers"],
                         "influencer_gender": campaign["influencer_gender"],
                         "influencer_location": campaign["influencer_location"],
