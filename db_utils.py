@@ -72,7 +72,7 @@ def create_campaign_in_db(data):
             user_id, brand_name, brand_instagram_id, product, website, email,
             caption, hashtag, tags, content_type,target_followers,
             influencer_gender, influencer_location, campaign_title, target_reach,
-            budget, goal, manager_name, contact_number, rewards, start_date, end_date, status, 'brand_logo', 'campaign_assets', description
+            budget, goal, manager_name, contact_number, rewards, start_date, end_date, status, brand_logo, campaign_assets, description
         ) VALUES (
             %(user_id)s, %(brand_name)s, %(brand_instagram_id)s, %(product)s, %(website)s, %(email)s,
             %(caption)s, %(hashtag)s, %(tags)s, %(content_type)s, %(target_followers)s,
