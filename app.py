@@ -400,7 +400,6 @@ def get_eligible_campaigns():
                         "hashtag": campaign["hashtag"],
                         "tags": campaign["tags"],
                         "content_type": campaign["content_type"],
-                        "deadline": campaign["deadline"],
                         "target_followers": campaign["target_followers"],
                         "influencer_gender": campaign["influencer_gender"],
                         "influencer_location": campaign["influencer_location"],
@@ -413,7 +412,8 @@ def get_eligible_campaigns():
                         "rewards": campaign["rewards"],
                         "status": campaign["status"],
                         "start_date": campaign["start_date"],
-                        "end_date": campaign["end_date"]
+                        "end_date": campaign["end_date"],
+                        "description": campaign["description"]
                     }
                     for campaign in campaigns
                 ]
