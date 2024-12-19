@@ -427,9 +427,15 @@ def get_eligible_campaigns():
 def respond_to_campaign():
     """Endpoint for influencers to accept or reject a campaign."""
     try:
+        data = request.get_json()  # This is how you get the JSON data in Flask
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Extract the values from the JSON data
         influencer_id = data.get('influencer_id')
         campaign_id = data.get('campaign_id')
-        influencer_status = data.get('influencer_status')  # "accepted" or "rejected"
+        influencer_status = data.get('influencer_status')
 
         if not influencer_id or not campaign_id or not influencer_status:
             return jsonify({"error": "All fields (influencer_id, campaign_id, influencer_status) are required"}), 400
