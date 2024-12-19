@@ -468,5 +468,64 @@ def respond_to_campaign():
         logging.error(f"Error recording campaign response: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/active-campaigns', methods=['GET'])
+def active_campaigns():
+    """Endpoint for fetching active campaigns for an influencer based on influencer_status = 'accepted'."""
+    try:
+        influencer_id = request.args.get('user_id')
+        if not influencer_id:
+            return jsonify({"error": "User ID is required"}), 400
+
+        # Log the user_id being passed
+        logging.debug(f"Fetching active campaigns for influencer user_id: {influencer_id}")
+
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=DictCursor) as cursor:
+                # Step 1: Fetch all influencer campaign details where influencer_status is 'accepted'
+                query_influencer_campaigns = """
+                    SELECT influencer_id, campaign_id, influencer_status, campaign_status 
+                    FROM influencer_campaign 
+                    WHERE influencer_id = %s AND influencer_status = 'accepted'
+                """
+                
+                # Log the query for influencer campaigns
+                logging.debug(f"Executing query: {query_influencer_campaigns} with user_id: {influencer_id}")
+                cursor.execute(query_influencer_campaigns, (influencer_id,))
+                influencer_campaigns = cursor.fetchall()
+
+                # If no campaigns are found for the influencer, return an empty list
+                if not influencer_campaigns:
+                    return jsonify({"influencer_campaigns": []}), 200
+
+                # Step 2: Fetch campaign details for the campaign_ids obtained from the influencer_campaign table
+                campaign_ids = [campaign["campaign_id"] for campaign in influencer_campaigns]
+                
+                query_campaign_details = """
+                    SELECT * 
+                    FROM campaigns 
+                    WHERE id IN %s
+                """
+                
+                # Log the query for campaign details
+                logging.debug(f"Executing query: {query_campaign_details} with campaign_ids: {campaign_ids}")
+                cursor.execute(query_campaign_details, (tuple(campaign_ids),))
+                campaigns = cursor.fetchall()
+
+                # Log the campaigns fetched from the campaigns table
+                logging.debug(f"Campaign details fetched: {campaigns}")
+
+                if not campaigns:
+                    return jsonify({"campaigns": []}), 200  # Return empty list if no matching campaigns
+
+                # Return both influencer_campaigns and campaigns as separate objects
+                return jsonify({
+                    "influencer_campaigns": [dict(record) for record in influencer_campaigns],  # Convert list of tuples to list of dicts
+                    "campaigns": [dict(record) for record in campaigns]  # Convert list of tuples to list of dicts
+                }), 200
+
+    except Exception as e:
+        logging.error(f"Error fetching active campaigns: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
