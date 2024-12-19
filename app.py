@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection, generate_otp, send_otp_via_email
+from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection
 import os
 from datetime import datetime
 import pytz
@@ -12,6 +12,8 @@ import smtplib
 from flask_mail import Mail
 from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
+from your_database_module import db
+from your_models import InfluencerCampaignStatus
 
 
 app = Flask(__name__)  # Initialize Flask app
@@ -424,41 +426,34 @@ def get_eligible_campaigns():
         logging.error(f"Error fetching eligible campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/send_otp', methods=['POST'])
-def send_otp():
-    data = request.json
-    email = data.get('email')
+@app.route('/api/campaign/response', methods=['POST'])
+def campaign_response():
+    # Extract the data from the request
+    data = request.get_json()
 
-    if not email:
-        return jsonify({'error': 'Email is required'}), 400
+    influencer_id = data.get('influencer_id')
+    campaign_id = data.get('campaign_id')
+    influencer_status = data.get('influencer_status')  # "accepted" or "rejected"
+
+    # Validate the data
+    if not influencer_id or not campaign_id or not influencer_status:
+        return jsonify({"error": "Missing required fields"}), 400
 
     try:
-        # Generate OTP
-        otp = generate_otp()
+        # Insert the record into the database
+        new_record = InfluencerCampaignStatus(
+            influencer_id=influencer_id,
+            campaign_id=campaign_id,
+            status=influencer_status,
+            updated_at=db.func.now()
+        )
+        db.session.add(new_record)
+        db.session.commit()
 
-        # Fetch sender email and App Password from environment variables
-        sender_email = os.getenv('EMAIL')
-        app_password = os.getenv('APP_PASSWORD')
-
-        if not sender_email or not app_password:
-            return jsonify({'error': 'Server email configuration is missing'}), 500
-
-        # Send OTP via email
-        send_otp_via_email(sender_email, app_password, email, otp)
-
-        # Log success
-        app.logger.info(f"OTP sent to {email} successfully")
-
-        # Return success message without OTP (for security)
-        return jsonify({'message': f"OTP sent to {email}",'otp':f"{otp}"}), 200
+        return jsonify({"message": "Influencer response recorded successfully"}), 200
 
     except Exception as e:
-        # Log the error with more specific details
-        app.logger.error(f"Error while sending OTP to {email}: {str(e)}")
-
-        # Return error response with detailed message
-        return jsonify({'error': f'Failed to send OTP due to {str(e)}'}), 500
-
+        return jsonify({"error": str(e)}), 500
         
 if __name__ == '__main__':
     app.run(debug=True)
