@@ -12,9 +12,6 @@ import smtplib
 from flask_mail import Mail
 from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
-from your_database_module import db
-from your_models import InfluencerCampaignStatus
-
 
 app = Flask(__name__)  # Initialize Flask app
 CORS(app)
@@ -426,34 +423,44 @@ def get_eligible_campaigns():
         logging.error(f"Error fetching eligible campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/api/campaign/response', methods=['POST'])
-def campaign_response():
-    # Extract the data from the request
-    data = request.get_json()
-
-    influencer_id = data.get('influencer_id')
-    campaign_id = data.get('campaign_id')
-    influencer_status = data.get('influencer_status')  # "accepted" or "rejected"
-
-    # Validate the data
-    if not influencer_id or not campaign_id or not influencer_status:
-        return jsonify({"error": "Missing required fields"}), 400
-
+@app.route('/campaign/respond', methods=['POST'])
+def respond_to_campaign():
+    """Endpoint for influencers to accept or reject a campaign."""
     try:
-        # Insert the record into the database
-        new_record = InfluencerCampaignStatus(
-            influencer_id=influencer_id,
-            campaign_id=campaign_id,
-            status=influencer_status,
-            updated_at=db.func.now()
-        )
-        db.session.add(new_record)
-        db.session.commit()
+        influencer_id = data.get('influencer_id')
+        campaign_id = data.get('campaign_id')
+        influencer_status = data.get('influencer_status')  # "accepted" or "rejected"
 
-        return jsonify({"message": "Influencer response recorded successfully"}), 200
+        if not influencer_id or not campaign_id or not influencer_status:
+            return jsonify({"error": "All fields (influencer_id, campaign_id, influencer_status) are required"}), 400
+
+        if influencer_status not in ["accepted", "rejected"]:
+            return jsonify({"error": "Invalid status value. Use 'accepted' or 'rejected'"}), 400
+
+        # Insert data into the influencer_campaign_status table
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = """
+                INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, updated_at)
+                VALUES (%s, %s, %s, %s)
+                """
+                updated_at = datetime.utcnow()  # UTC timestamp
+                cursor.execute(query, (influencer_id, campaign_id, influencer_status, updated_at))
+                conn.commit()
+
+        return jsonify({
+            "message": "Response recorded successfully",
+            "details": {
+                "influencer_id": influencer_id,
+                "campaign_id": campaign_id,
+                "influencer_status": influencer_status,
+                "updated_at": updated_at
+            }
+        }), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-        
+        logging.error(f"Error recording campaign response: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
