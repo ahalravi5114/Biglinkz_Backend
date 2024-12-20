@@ -1,26 +1,27 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection
+from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection, update_campaign_status, schedule_campaign_status_update
 import os
 from datetime import datetime
 import pytz
 import logging
 from psycopg2.extras import DictCursor
-from instagrapi import Client  # For fetching Instagram data
+from instagrapi import Client  
 import smtplib 
 from flask_mail import Mail
 from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
+from apscheduler.schedulers.background import BackgroundScheduler
 
-app = Flask(__name__)  # Initialize Flask app
+app = Flask(__name__)  
 CORS(app)
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  # Your email here
-app.config['MAIL_PASSWORD'] = 'your-email-password'  # Your email password here
+app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  
+app.config['MAIL_PASSWORD'] = 'your-email-password'  
 
 mail = Mail(app)
 
@@ -162,6 +163,14 @@ def create_campaign():
         brand_logo.save(logo_path)
         data['brand_logo'] = logo_path  # Store the file path in the campaign data
 
+        start_date_str = data['start_date']
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            deadline = start_date - timedelta(days=20)
+            data['deadline'] = deadline.strftime('%Y-%m-%d')
+        except ValueError as ve:
+            return jsonify({"error": "Invalid date format for start_date. Expected format: YYYY-MM-DD"}), 400
+
         # Handle campaign assets upload (multiple files)
         asset_files = files.getlist('campaign_assets')  # Allow multiple files for assets
         asset_paths = []
@@ -238,7 +247,8 @@ def get_campaigns():
                         "end_date": campaign["end_date"],
                         "brand_logo": brand_logo_path,  # Add brand logo path
                         "campaign_assets": campaign_assets,
-                        "description": campaign["description"] # Add campaign assets paths
+                        "description": campaign["description"],# Add campaign assets paths
+                        "deadline": campaign["deadline"]
                     })
 
                 return jsonify({"campaigns": campaign_list}), 200
@@ -412,7 +422,8 @@ def get_eligible_campaigns():
                         "status": campaign["status"],
                         "start_date": campaign["start_date"],
                         "end_date": campaign["end_date"],
-                        "description": campaign["description"]
+                        "description": campaign["description"],
+                        "deadline": campaign["deadline"]
                     }
                     for campaign in campaigns
                 ]
@@ -436,9 +447,10 @@ def respond_to_campaign():
         influencer_id = data.get('influencer_id')
         campaign_id = data.get('campaign_id')
         influencer_status = data.get('influencer_status')
+        deadline = data.get('deadline')
 
-        if not influencer_id or not campaign_id or not influencer_status:
-            return jsonify({"error": "All fields (influencer_id, campaign_id, influencer_status) are required"}), 400
+        if not influencer_id or not campaign_id or not influencer_status or not deadline:
+            return jsonify({"error": "All fields (influencer_id, campaign_id, influencer_status,deadline) are required"}), 400
 
         if influencer_status not in ["accepted", "rejected"]:
             return jsonify({"error": "Invalid status value. Use 'accepted' or 'rejected'"}), 400
@@ -447,11 +459,11 @@ def respond_to_campaign():
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query = """
-                INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, updated_at)
+                INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, updated_at)
                 VALUES (%s, %s, %s, %s)
                 """
                 updated_at = datetime.utcnow()  # UTC timestamp
-                cursor.execute(query, (influencer_id, campaign_id, influencer_status, updated_at))
+                cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, updated_at))
                 conn.commit()
 
         return jsonify({
@@ -460,6 +472,7 @@ def respond_to_campaign():
                 "influencer_id": influencer_id,
                 "campaign_id": campaign_id,
                 "influencer_status": influencer_status,
+                "deadline" : deadline,
                 "updated_at": updated_at
             }
         }), 201
@@ -468,7 +481,7 @@ def respond_to_campaign():
         logging.error(f"Error recording campaign response: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/active-campaigns', methods=['GET'])
+@app.route('/active-campaigns', methods=['GET']) 
 def active_campaigns():
     """Endpoint for fetching active campaigns for an influencer based on influencer_status = 'accepted'."""
     try:
@@ -526,6 +539,10 @@ def active_campaigns():
     except Exception as e:
         logging.error(f"Error fetching active campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@app.before_first_request
+def before_first_request():
+    schedule_campaign_status_update()
 
 if __name__ == '__main__':
     app.run(debug=True)
