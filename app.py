@@ -540,9 +540,9 @@ def active_campaigns():
         logging.error(f"Error fetching active campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.before_first_request
-def before_first_request():
+def start_scheduler():
     schedule_campaign_status_update()
 
 if __name__ == '__main__':
+    start_scheduler()
     app.run(debug=True)
