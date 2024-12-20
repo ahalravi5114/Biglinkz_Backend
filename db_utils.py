@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import secrets
 import string
 from flask_mail import Message, Mail
@@ -170,4 +170,4 @@ def update_campaign_status():
 def schedule_campaign_status_update():
     scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
     scheduler.add_job(update_campaign_status, 'interval', hours=24)  # Runs every 24 hours
-    scheduler.start()
+    scheduler.start() 
