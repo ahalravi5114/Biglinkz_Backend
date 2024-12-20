@@ -460,7 +460,7 @@ def respond_to_campaign():
             with conn.cursor() as cursor:
                 query = """
                 INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, updated_at)
-                VALUES (%s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s)
                 """
                 updated_at = datetime.utcnow()  # UTC timestamp
                 cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, updated_at))
