@@ -662,12 +662,8 @@ def active_campaigns():
 def display_notifications():
     """Endpoint to display notifications for a user."""
     try:
-        data = request.get_json()  # Get JSON data from the request
-
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
-
-        user_id = data.get('user_id')
+        # Use query parameters for GET requests
+        user_id = request.args.get('user_id')
 
         if not user_id:
             return jsonify({"error": "user_id is required"}), 400
@@ -689,7 +685,7 @@ def display_notifications():
 
         # Prepare the response
         notification_list = [
-            {"content": notification[0], "created_at": notification[1].isoformat()}
+            {"content": notification[0], "created_at": notification[1].isoformat() if notification[1] else None}
             for notification in notifications
         ]
 
@@ -700,7 +696,7 @@ def display_notifications():
 
     except Exception as e:
         logging.error(f"Error retrieving notifications: {str(e)}")
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An error occurred while retrieving notifications"}), 500
 
 def start_scheduler():
     schedule_campaign_status_update()
