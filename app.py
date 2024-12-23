@@ -658,7 +658,7 @@ def active_campaigns():
         logging.error(f"Error fetching active campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route('/notifications/display', methods=['POST'])
+@app.route('/notifications/display', methods=['GET'])
 def display_notifications():
     """Endpoint to display notifications for a user."""
     try:
