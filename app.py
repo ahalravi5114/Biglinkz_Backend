@@ -445,8 +445,8 @@ def respond_to_campaign():
 
         # Case 1: Accept/Reject Campaign
         if "influencer_status" in data:
-            influencer_id = data.get('influencer_id')
-            campaign_id = data.get('campaign_id')
+            influencer_id = str(data.get('influencer_id'))  # Ensure it's a string if it's VARCHAR in DB
+            campaign_id = str(data.get('campaign_id'))  # Ensure it's a string if it's VARCHAR in DB
             influencer_status = data.get('influencer_status')
             deadline = data.get('deadline')
 
@@ -523,8 +523,8 @@ def respond_to_campaign():
 
         # Case 2: Update Submission URL
         elif "submission_url" in data:
-            influencer_id = data.get('influencer_id')
-            campaign_id = data.get('campaign_id')
+            influencer_id = str(data.get('influencer_id'))  # Ensure it's a string if it's VARCHAR in DB
+            campaign_id = str(data.get('campaign_id'))  # Ensure it's a string if it's VARCHAR in DB
             submission_url = data.get('submission_url')
 
             # Validate required fields for submission URL update
