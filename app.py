@@ -460,7 +460,7 @@ def respond_to_campaign():
             # Fetch campaign title and user_id from campaigns table
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
-                    query_campaign = "SELECT title, user_id FROM campaigns WHERE campaign_id = %s"
+                    query_campaign = "SELECT campaign_title, user_id FROM campaigns WHERE campaign_id = %s"
                     cursor.execute(query_campaign, (campaign_id,))
                     campaign = cursor.fetchone()
 
@@ -535,7 +535,7 @@ def respond_to_campaign():
             # Fetch campaign title and user_id from campaigns table
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
-                    query_campaign = "SELECT title, user_id FROM campaigns WHERE campaign_id = %s"
+                    query_campaign = "SELECT campaign_title, user_id FROM campaigns WHERE campaign_id = %s"
                     cursor.execute(query_campaign, (campaign_id,))
                     campaign = cursor.fetchone()
 
