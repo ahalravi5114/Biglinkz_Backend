@@ -488,16 +488,15 @@ def respond_to_campaign():
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
                     query = """
-                    INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, content, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, updated_at)
+                    VALUES (%s, %s, %s, %s, %s)
                     ON CONFLICT (influencer_id, campaign_id) DO UPDATE 
                     SET influencer_status = EXCLUDED.influencer_status,
                         deadline = EXCLUDED.deadline,
-                        content = EXCLUDED.content,
                         updated_at = EXCLUDED.updated_at
                     """
                     updated_at = datetime.utcnow()  # UTC timestamp
-                    cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, content, updated_at))
+                    cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, updated_at))
                     conn.commit()
 
             # Insert notification record in the notifications table
@@ -564,11 +563,11 @@ def respond_to_campaign():
                 with conn.cursor() as cursor:
                     query = """
                     UPDATE influencer_campaign
-                    SET submission_url = %s, content = %s, updated_at = %s
+                    SET submission_url = %s, updated_at = %s
                     WHERE influencer_id = %s AND campaign_id = %s
                     """
                     updated_at = datetime.utcnow()  # UTC timestamp
-                    cursor.execute(query, (submission_url, content, updated_at, influencer_id, campaign_id))
+                    cursor.execute(query, (submission_url, updated_at, influencer_id, campaign_id))
                     conn.commit()
 
             # Insert notification record in the notifications table
