@@ -457,19 +457,58 @@ def respond_to_campaign():
             if influencer_status not in ["accepted", "rejected"]:
                 return jsonify({"error": "Invalid status value. Use 'accepted' or 'rejected'"}), 400
 
+            # Fetch campaign title and user_id from campaigns table
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query_campaign = "SELECT title, user_id FROM campaigns WHERE campaign_id = %s"
+                    cursor.execute(query_campaign, (campaign_id,))
+                    campaign = cursor.fetchone()
+
+                    if not campaign:
+                        return jsonify({"error": "Campaign not found"}), 404
+
+                    campaign_title, user_id = campaign
+
+            # Fetch influencer's name from influencer_profile table
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query_influencer = "SELECT first_name, last_name FROM influencer_profile WHERE user_id = %s"
+                    cursor.execute(query_influencer, (influencer_id,))
+                    influencer = cursor.fetchone()
+
+                    if not influencer:
+                        return jsonify({"error": "Influencer not found"}), 404
+
+                    influencer_name = f"{influencer[0]} {influencer[1]}"
+
+            # Construct content based on the influencer's action
+            content = f"{campaign_title} has been {influencer_status} by {influencer_name}"
+
             # Insert or update the influencer campaign record
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
                     query = """
-                    INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, updated_at)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, content, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     ON CONFLICT (influencer_id, campaign_id) DO UPDATE 
                     SET influencer_status = EXCLUDED.influencer_status,
                         deadline = EXCLUDED.deadline,
+                        content = EXCLUDED.content,
                         updated_at = EXCLUDED.updated_at
                     """
                     updated_at = datetime.utcnow()  # UTC timestamp
-                    cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, updated_at))
+                    cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, content, updated_at))
+                    conn.commit()
+
+            # Insert notification record in the notifications table
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query_notification = """
+                    INSERT INTO notifications (user_id, content, created_at)
+                    VALUES (%s, %s, %s)
+                    """
+                    created_at = datetime.utcnow()  # Current timestamp for notification
+                    cursor.execute(query_notification, (user_id, content, created_at))
                     conn.commit()
 
             return jsonify({
@@ -478,31 +517,69 @@ def respond_to_campaign():
                     "influencer_id": influencer_id,
                     "campaign_id": campaign_id,
                     "influencer_status": influencer_status,
-                    "deadline": deadline,
+                    "content": content,
                     "updated_at": updated_at
                 }
             }), 201
 
         # Case 2: Update Submission URL
         elif "submission_url" in data:
-            influencer_id = str(data.get('influencer_id'))  # Ensure it's a string if it's VARCHAR in DB
-            campaign_id = str(data.get('campaign_id'))  # Ensure it's a string if it's VARCHAR in DB
+            influencer_id = data.get('influencer_id')
+            campaign_id = data.get('campaign_id')
             submission_url = data.get('submission_url')
 
             # Validate required fields for submission URL update
             if not influencer_id or not campaign_id or not submission_url:
                 return jsonify({"error": "Fields (influencer_id, campaign_id, submission_url) are required for URL update"}), 400
 
+            # Fetch campaign title and user_id from campaigns table
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query_campaign = "SELECT title, user_id FROM campaigns WHERE campaign_id = %s"
+                    cursor.execute(query_campaign, (campaign_id,))
+                    campaign = cursor.fetchone()
+
+                    if not campaign:
+                        return jsonify({"error": "Campaign not found"}), 404
+
+                    campaign_title, user_id = campaign
+
+            # Fetch influencer's name from influencer_profile table
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query_influencer = "SELECT first_name, last_name FROM influencer_profile WHERE user_id = %s"
+                    cursor.execute(query_influencer, (influencer_id,))
+                    influencer = cursor.fetchone()
+
+                    if not influencer:
+                        return jsonify({"error": "Influencer not found"}), 404
+
+                    influencer_name = f"{influencer[0]} {influencer[1]}"
+
+            # Construct content based on submission URL
+            content = f"{influencer_name} has submitted the URL for {campaign_title}"
+
             # Update the submission URL in the influencer_campaign table
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
                     query = """
                     UPDATE influencer_campaign
-                    SET submission_url = %s, updated_at = %s
+                    SET submission_url = %s, content = %s, updated_at = %s
                     WHERE influencer_id = %s AND campaign_id = %s
                     """
                     updated_at = datetime.utcnow()  # UTC timestamp
-                    cursor.execute(query, (submission_url, updated_at, influencer_id, campaign_id))
+                    cursor.execute(query, (submission_url, content, updated_at, influencer_id, campaign_id))
+                    conn.commit()
+
+            # Insert notification record in the notifications table
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query_notification = """
+                    INSERT INTO notifications (user_id, content, created_at)
+                    VALUES (%s, %s, %s)
+                    """
+                    created_at = datetime.utcnow()  # Current timestamp for notification
+                    cursor.execute(query_notification, (user_id, content, created_at))
                     conn.commit()
 
             return jsonify({
@@ -511,6 +588,7 @@ def respond_to_campaign():
                     "influencer_id": influencer_id,
                     "campaign_id": campaign_id,
                     "submission_url": submission_url,
+                    "content": content,
                     "updated_at": updated_at
                 }
             }), 200
@@ -521,7 +599,7 @@ def respond_to_campaign():
     except Exception as e:
         logging.error(f"Error processing campaign response: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-        
+
 @app.route('/active-campaigns', methods=['GET']) 
 def active_campaigns():
     """Endpoint for fetching active campaigns for an influencer based on influencer_status = 'accepted'."""
@@ -579,6 +657,50 @@ def active_campaigns():
 
     except Exception as e:
         logging.error(f"Error fetching active campaigns: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/notifications/display', methods=['POST'])
+def display_notifications():
+    """Endpoint to display notifications for a user."""
+    try:
+        data = request.get_json()  # Get JSON data from the request
+
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        user_id = data.get('user_id')
+
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+
+        # Fetch notifications for the user
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = """
+                SELECT content, created_at 
+                FROM notifications 
+                WHERE user_id = %s 
+                ORDER BY created_at DESC
+                """
+                cursor.execute(query, (user_id,))
+                notifications = cursor.fetchall()
+
+                if not notifications:
+                    return jsonify({"message": "No notifications found for the user"}), 200
+
+        # Prepare the response
+        notification_list = [
+            {"content": notification[0], "created_at": notification[1].isoformat()}
+            for notification in notifications
+        ]
+
+        return jsonify({
+            "message": "Notifications retrieved successfully",
+            "notifications": notification_list
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error retrieving notifications: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 def start_scheduler():
