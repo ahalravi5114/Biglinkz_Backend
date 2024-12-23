@@ -436,51 +436,92 @@ def get_eligible_campaigns():
 
 @app.route('/campaign/respond', methods=['POST'])
 def respond_to_campaign():
-    """Endpoint for influencers to accept or reject a campaign."""
+    """Endpoint for influencers to accept/reject a campaign or submit the submission URL."""
     try:
-        data = request.get_json()  # This is how you get the JSON data in Flask
+        data = request.get_json()  # Get JSON data from the request
         
         if not data:
             return jsonify({"error": "No data provided"}), 400
-        
-        # Extract the values from the JSON data
-        influencer_id = data.get('influencer_id')
-        campaign_id = data.get('campaign_id')
-        influencer_status = data.get('influencer_status')
-        deadline = data.get('deadline')
 
-        if not influencer_id or not campaign_id or not influencer_status or not deadline:
-            return jsonify({"error": "All fields (influencer_id, campaign_id, influencer_status,deadline) are required"}), 400
+        # Case 1: Accept/Reject Campaign
+        if "influencer_status" in data:
+            influencer_id = data.get('influencer_id')
+            campaign_id = data.get('campaign_id')
+            influencer_status = data.get('influencer_status')
+            deadline = data.get('deadline')
 
-        if influencer_status not in ["accepted", "rejected"]:
-            return jsonify({"error": "Invalid status value. Use 'accepted' or 'rejected'"}), 400
+            # Validate required fields for accept/reject
+            if not influencer_id or not campaign_id or not influencer_status or not deadline:
+                return jsonify({"error": "All fields (influencer_id, campaign_id, influencer_status, deadline) are required"}), 400
 
-        # Insert data into the influencer_campaign_status table
-        with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                query = """
-                INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, updated_at)
-                VALUES (%s, %s, %s, %s, %s)
-                """
-                updated_at = datetime.utcnow()  # UTC timestamp
-                cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, updated_at))
-                conn.commit()
+            if influencer_status not in ["accepted", "rejected"]:
+                return jsonify({"error": "Invalid status value. Use 'accepted' or 'rejected'"}), 400
 
-        return jsonify({
-            "message": "Response recorded successfully",
-            "details": {
-                "influencer_id": influencer_id,
-                "campaign_id": campaign_id,
-                "influencer_status": influencer_status,
-                "deadline" : deadline,
-                "updated_at": updated_at
-            }
-        }), 201
+            # Insert or update the influencer campaign record
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query = """
+                    INSERT INTO influencer_campaign (influencer_id, campaign_id, influencer_status, deadline, updated_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (influencer_id, campaign_id) DO UPDATE 
+                    SET influencer_status = EXCLUDED.influencer_status,
+                        deadline = EXCLUDED.deadline,
+                        updated_at = EXCLUDED.updated_at
+                    """
+                    updated_at = datetime.utcnow()  # UTC timestamp
+                    cursor.execute(query, (influencer_id, campaign_id, influencer_status, deadline, updated_at))
+                    conn.commit()
+
+            return jsonify({
+                "message": "Campaign response recorded successfully",
+                "details": {
+                    "influencer_id": influencer_id,
+                    "campaign_id": campaign_id,
+                    "influencer_status": influencer_status,
+                    "deadline": deadline,
+                    "updated_at": updated_at
+                }
+            }), 201
+
+        # Case 2: Update Submission URL
+        elif "submission_url" in data:
+            influencer_id = data.get('influencer_id')
+            campaign_id = data.get('campaign_id')
+            submission_url = data.get('submission_url')
+
+            # Validate required fields for submission URL update
+            if not influencer_id or not campaign_id or not submission_url:
+                return jsonify({"error": "Fields (influencer_id, campaign_id, submission_url) are required for URL update"}), 400
+
+            # Update the submission URL in the influencer_campaign table
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    query = """
+                    UPDATE influencer_campaign
+                    SET submission_url = %s, updated_at = %s
+                    WHERE influencer_id = %s AND campaign_id = %s
+                    """
+                    updated_at = datetime.utcnow()  # UTC timestamp
+                    cursor.execute(query, (submission_url, updated_at, influencer_id, campaign_id))
+                    conn.commit()
+
+            return jsonify({
+                "message": "Submission URL updated successfully",
+                "details": {
+                    "influencer_id": influencer_id,
+                    "campaign_id": campaign_id,
+                    "submission_url": submission_url,
+                    "updated_at": updated_at
+                }
+            }), 200
+
+        else:
+            return jsonify({"error": "Invalid request. Provide either influencer_status or submission_url"}), 400
 
     except Exception as e:
-        logging.error(f"Error recording campaign response: {str(e)}")
+        logging.error(f"Error processing campaign response: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
+        
 @app.route('/active-campaigns', methods=['GET']) 
 def active_campaigns():
     """Endpoint for fetching active campaigns for an influencer based on influencer_status = 'accepted'."""
@@ -496,7 +537,7 @@ def active_campaigns():
             with conn.cursor(cursor_factory=DictCursor) as cursor:
                 # Step 1: Fetch all influencer campaign details where influencer_status is 'accepted'
                 query_influencer_campaigns = """
-                    SELECT influencer_id, campaign_id, influencer_status, campaign_status 
+                    SELECT influencer_id, campaign_id, influencer_status, campaign_status, submission_url
                     FROM influencer_campaign 
                     WHERE influencer_id = %s AND influencer_status = 'accepted'
                 """
