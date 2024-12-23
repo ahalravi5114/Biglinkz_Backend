@@ -503,11 +503,11 @@ def respond_to_campaign():
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
                     query_notification = """
-                    INSERT INTO notifications (user_id, content, created_at)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO notifications (user_id, campaign_id, content, created_at)
+                    VALUES (%s, %s, %s, %s)
                     """
                     created_at = datetime.utcnow()  # Current timestamp for notification
-                    cursor.execute(query_notification, (user_id, content, created_at))
+                    cursor.execute(query_notification, (user_id, campaign_id, content, created_at))
                     conn.commit()
 
             return jsonify({
@@ -574,11 +574,11 @@ def respond_to_campaign():
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
                     query_notification = """
-                    INSERT INTO notifications (user_id, content, created_at)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO notifications (user_id, campaign_id, content, created_at)
+                    VALUES (%s, %s, %s, %s)
                     """
                     created_at = datetime.utcnow()  # Current timestamp for notification
-                    cursor.execute(query_notification, (user_id, content, created_at))
+                    cursor.execute(query_notification, (user_id, campaign_id, content, created_at))
                     conn.commit()
 
             return jsonify({
