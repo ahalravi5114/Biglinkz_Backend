@@ -78,16 +78,17 @@ def create_campaign_in_db(data):
         # Log error for more details
         logging.error(f"Error creating campaign: {str(e)}")
         raise Exception(f"Error creating campaign: {str(e)}")
-        
+
 def update_campaign_status():
     try:
         # Get the current IST time
         ist_timezone = pytz.timezone("Asia/Kolkata")
         current_time = datetime.now(ist_timezone)
+        logging.info(f"Campaign status update started at {current_time}")
 
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                # Fetch all campaigns that have start_date and end_date
+                # Fetch all campaigns
                 query = """
                     SELECT id, start_date, end_date, status
                     FROM campaigns
@@ -96,15 +97,15 @@ def update_campaign_status():
                 campaigns = cursor.fetchall()
 
                 for campaign in campaigns:
-                    campaign_id = campaign[0]
-                    start_date = campaign[1]
-                    end_date = campaign[2]
+                    campaign_id, start_date, end_date, status = campaign
 
-                    # Convert the campaign's start_date and end_date to IST if necessary
-                    start_date = start_date.astimezone(ist_timezone)
-                    end_date = end_date.astimezone(ist_timezone)
+                    # Convert to IST if not already timezone-aware
+                    if start_date.tzinfo is None:
+                        start_date = start_date.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
+                    if end_date.tzinfo is None:
+                        end_date = end_date.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
 
-                    # Determine the new status based on current time and campaign dates
+                    # Determine the new status
                     if current_time < start_date:
                         new_status = 'upcoming'
                     elif start_date <= current_time <= end_date:
@@ -112,8 +113,8 @@ def update_campaign_status():
                     else:
                         new_status = 'expired'
 
-                    # If the status needs to be updated, update it in the database
-                    if new_status != campaign[3]:  # Only update if status is different
+                    # Update the status if it has changed
+                    if new_status != status:
                         update_query = """
                             UPDATE campaigns
                             SET status = %s
@@ -121,67 +122,56 @@ def update_campaign_status():
                         """
                         cursor.execute(update_query, (new_status, campaign_id))
                         conn.commit()
+                        logging.info(f"Campaign ID {campaign_id} updated to status {new_status}")
 
-                logging.info(f"Campaign status update completed at {current_time}")
-
-                # Update influencer_campaign status based on additional logic
-                query_influencer_campaign = """
+                # Update influencer_campaign status
+                influencer_query = """
                     SELECT campaign_id, campaign_status, submission_url, deadline, start_date
                     FROM influencer_campaign
-                    WHERE campaign_status = 'submissiondue'
                 """
-                cursor.execute(query_influencer_campaign)
+                cursor.execute(influencer_query)
                 influencer_campaigns = cursor.fetchall()
 
-                for influencer_campaign in influencer_campaigns:
-                    campaign_id = influencer_campaign[0]
-                    submission_url = influencer_campaign[2]
-                    deadline = influencer_campaign[3]
-                    start_date = influencer_campaign[4]
+                for campaign in influencer_campaigns:
+                    campaign_id, campaign_status, submission_url, deadline, start_date = campaign
 
-                    # Convert the start_date and deadline to IST if necessary
-                    deadline = deadline.astimezone(ist_timezone)
-                    start_date = start_date.astimezone(ist_timezone)
+                    # Convert to IST if not already timezone-aware
+                    if start_date.tzinfo is None:
+                        start_date = start_date.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
+                    if deadline.tzinfo is None:
+                        deadline = deadline.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
 
-                    # Determine the new campaign_status for the influencer_campaign
-                    if current_time < start_date and current_time < deadline:
-                        # Campaign is not started and the deadline is not over
+                    # Determine new campaign_status
+                    if current_time < start_date:
                         new_campaign_status = 'submissiondue'
-
                     elif start_date <= current_time <= deadline:
-                        # Campaign has started, check if submission_url is filled
-                        if submission_url:
-                            new_campaign_status = 'live'  # Campaign is live and URL is submitted
-                        else:
-                            new_campaign_status = 'submissiondue'  # Campaign is active but URL not yet submitted
-
-                    elif current_time > deadline and submission_url is None:
-                        # Deadline is over and submission URL is not filled
-                        new_campaign_status = 'rejected'  # Rejected because submission URL is not filled
-
+                        new_campaign_status = 'live' if submission_url else 'submissiondue'
+                    elif current_time > deadline and not submission_url:
+                        new_campaign_status = 'rejected'
                     elif current_time > deadline and submission_url:
-                        # Campaign is over and submission URL is filled
-                        new_campaign_status = 'past'  # Campaign ended and URL was submitted
-
-                    elif current_time > start_date:
-                        # Campaign has ended, no submission URL or the deadline passed
+                        new_campaign_status = 'past'
+                    else:
                         new_campaign_status = 'expired'
 
-                    # Only update the campaign_status if it needs to be changed
-                    if new_campaign_status != influencer_campaign[1]:  # Check if status is different
-                        update_query_influencer_campaign = """
+                    # Update if status has changed
+                    if new_campaign_status != campaign_status:
+                        update_query = """
                             UPDATE influencer_campaign
                             SET campaign_status = %s
                             WHERE campaign_id = %s
                         """
-                        cursor.execute(update_query_influencer_campaign, (new_campaign_status, campaign_id))
+                        cursor.execute(update_query, (new_campaign_status, campaign_id))
                         conn.commit()
+                        logging.info(f"Influencer Campaign ID {campaign_id} updated to status {new_campaign_status}")
+
+        logging.info("Campaign status update completed.")
 
     except Exception as e:
-        logging.error(f"Error updating campaign status: {str(e)}")
+        logging.error(f"Error updating campaign status: {e}")
 
-# APScheduler to schedule the update periodically
-def schedule_campaign_status_update():
-    scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
-    scheduler.add_job(update_campaign_status, 'interval', hours=24)  # Runs every 24 hours
-    scheduler.start() 
+# Function to continuously check and update campaign statuses
+def run_continuously():
+    logging.info("Starting continuous campaign status updates.")
+    while True:
+        update_campaign_status()
+        time.sleep(60) 
