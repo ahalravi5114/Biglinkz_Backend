@@ -687,7 +687,7 @@ def past_campaigns():
 
                 # If no campaigns are found for the influencer, return an empty list
                 if not influencer_campaigns:
-                    return jsonify({"influencer_campaigns": []}), 200
+                    return jsonify({"influencer_campaigns": [], "campaigns": []}), 200
 
                 # Step 2: Fetch campaign details for the campaign_ids obtained from the influencer_campaign table
                 campaign_ids = [campaign["campaign_id"] for campaign in influencer_campaigns]
@@ -706,51 +706,11 @@ def past_campaigns():
                 # Log the campaigns fetched from the campaigns table
                 logging.debug(f"Campaign details fetched: {campaigns}")
 
-                if not campaigns:
-                    return jsonify({"campaigns": []}), 200  # Return empty list if no matching campaigns
-
-                # Combine influencer_campaigns with campaign details
-                combined_campaigns = []
-                for influencer_campaign in influencer_campaigns:
-                    # Match campaign details by campaign_id
-                    matching_campaign = next(
-                        (campaign for campaign in campaigns if campaign["id"] == influencer_campaign["campaign_id"]), 
-                        None
-                    )
-
-                    if matching_campaign:
-                        combined_campaigns.append({
-                            "campaign_id": matching_campaign["id"],
-                            "brand_name": matching_campaign["brand_name"],
-                            "brand_instagram_id": matching_campaign["brand_instagram_id"],
-                            "product": matching_campaign["product"],
-                            "website": matching_campaign["website"],
-                            "email": matching_campaign["email"],
-                            "caption": matching_campaign["caption"],
-                            "hashtag": matching_campaign["hashtag"],
-                            "tags": matching_campaign["tags"],
-                            "content_type": matching_campaign["content_type"],
-                            "target_followers": matching_campaign["target_followers"],
-                            "influencer_gender": matching_campaign["influencer_gender"],
-                            "influencer_location": matching_campaign["influencer_location"],
-                            "campaign_title": matching_campaign["campaign_title"],
-                            "target_reach": matching_campaign["target_reach"],
-                            "budget": matching_campaign["budget"],
-                            "goal": matching_campaign["goal"],
-                            "manager_name": matching_campaign["manager_name"],
-                            "contact_number": matching_campaign["contact_number"],
-                            "rewards": matching_campaign["rewards"],
-                            "status": matching_campaign["status"],
-                            "start_date": matching_campaign["start_date"],
-                            "end_date": matching_campaign["end_date"],
-                            "brand_logo": matching_campaign["brand_logo"],
-                            "campaign_assets": matching_campaign["campaign_assets"].split(',') if matching_campaign["campaign_assets"] else [],
-                            "description": matching_campaign["description"],
-                            "deadline": matching_campaign["deadline"],
-                            "submission_url": influencer_campaign["submission_url"]  # Add submission_url
-                        })
-
-                return jsonify({"past_campaigns": combined_campaigns}), 200
+                # Return both influencer_campaigns and campaigns as separate objects
+                return jsonify({
+                    "influencer_campaigns": [dict(record) for record in influencer_campaigns],  # Convert list of tuples to list of dicts
+                    "campaigns": [dict(record) for record in campaigns]  # Convert list of tuples to list of dicts
+                }), 200
 
     except Exception as e:
         logging.error(f"Error fetching past campaigns: {str(e)}")
