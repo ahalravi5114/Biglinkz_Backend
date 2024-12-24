@@ -141,7 +141,7 @@ def create_campaign():
 
         for field in required_fields:
             if field not in data or not data[field]:
-                if field in ['brand_logo', 'campaign_assets']:  # Special cases for files
+                if field in ['brand_logo', 'campaign_assets']:
                     if field == 'brand_logo' and 'brand_logo' not in files:
                         return jsonify({"error": f"Missing or empty required field: {field}"}), 400
                     if field == 'campaign_assets' and len(files.getlist('campaign_assets')) == 0:
@@ -155,20 +155,19 @@ def create_campaign():
         if not user_id:
             return jsonify({"error": "User with the provided email does not exist"}), 404
 
-        # Add user_id to campaign data
         data['user_id'] = user_id
 
-        # Upload brand logo to ImageKit
+        # Upload brand logo
         brand_logo = files.get('brand_logo')
         if brand_logo:
             upload_response = imagekit.upload_file(
-                file=brand_logo.stream,  # Use file stream
+                file=brand_logo.stream,
                 file_name=secure_filename(brand_logo.filename),
                 options={"folder": "/brand_logos/"}
             )
-            if upload_response.get('error'):
+            if 'error' in upload_response:
                 return jsonify({"error": "Failed to upload brand logo"}), 500
-            data['brand_logo'] = upload_response.get('url')  # Store the URL
+            data['brand_logo'] = upload_response['url']
 
         # Parse and validate start_date
         start_date_str = data['start_date']
@@ -179,29 +178,29 @@ def create_campaign():
         except ValueError:
             return jsonify({"error": "Invalid date format for start_date. Expected format: YYYY-MM-DD"}), 400
 
-        # Upload campaign assets to ImageKit
-        asset_files = files.getlist('campaign_assets')  # Allow multiple files for assets
+        # Upload campaign assets
+        asset_files = files.getlist('campaign_assets')
         asset_urls = []
         for asset in asset_files:
             upload_response = imagekit.upload_file(
-                file=asset.stream,  # Use file stream
+                file=asset.stream,
                 file_name=secure_filename(asset.filename),
                 options={"folder": "/campaign_assets/"}
             )
-            if upload_response.get('error'):
+            if 'error' in upload_response:
                 return jsonify({"error": "Failed to upload campaign asset"}), 500
-            asset_urls.append(upload_response.get('url'))
-        data['campaign_assets'] = ','.join(asset_urls)  # Store asset URLs as a comma-separated string
+            asset_urls.append(upload_response['url'])
+        data['campaign_assets'] = ','.join(asset_urls)
 
-        # Insert campaign into the database
-        create_campaign_in_db(data)
+        # Insert into database
+        create_campaign_in_db(data)  # Ensure this function accepts dictionaries
 
         return jsonify({"message": "Campaign created successfully"}), 201
 
     except Exception as e:
-        logging.error(f"Error creating campaign: {str(e)}")
+        logging.error(f"Error creating campaign: {str(e)}", exc_info=True)
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-        
+                
 @app.route('/get-campaigns', methods=['GET'])
 def get_campaigns():
     """Endpoint for fetching campaigns created by a user, including brand logo and campaign assets."""
