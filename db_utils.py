@@ -10,10 +10,9 @@ from email.mime.text import MIMEText
 import smtplib
 from flask import Flask, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
-
+import time  
 
 logger = logging.getLogger(__name__)
-
 
 # Get the database URL from environment variables
 DB_URL = os.getenv('DATABASE_URL')
