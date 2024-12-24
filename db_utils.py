@@ -39,11 +39,14 @@ def create_campaign_in_db(data):
     data['status'] = 'active'
     data['start_date'] = data.get('start_date', datetime.now())
     data['end_date'] = data.get('end_date', datetime.now())
+    
+    # Log data to ensure it's a dictionary before insertion
+    logging.debug(f"Creating campaign with data: {data}")
 
     query = """
         INSERT INTO campaigns (
             user_id, brand_name, brand_instagram_id, product, website, email,
-            caption, hashtag, tags, content_type,target_followers,
+            caption, hashtag, tags, content_type, target_followers,
             influencer_gender, influencer_location, campaign_title, target_reach,
             budget, goal, manager_name, contact_number, rewards, start_date, end_date, status, brand_logo, campaign_assets, description, deadline
         ) VALUES (
@@ -58,13 +61,24 @@ def create_campaign_in_db(data):
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Execute the query with data
                 cursor.execute(query, data)
+                
+                # Fetch the inserted campaign data
                 campaign = cursor.fetchone()
+                
+                # Log the inserted campaign data
+                logging.debug(f"Inserted campaign: {campaign}")
+                
+                # Commit transaction
                 conn.commit()
+
                 return campaign
     except Exception as e:
+        # Log error for more details
+        logging.error(f"Error creating campaign: {str(e)}")
         raise Exception(f"Error creating campaign: {str(e)}")
-
+        
 def update_campaign_status():
     try:
         # Get the current IST time
