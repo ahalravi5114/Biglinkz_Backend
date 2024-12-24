@@ -196,7 +196,7 @@ def create_campaign():
     except Exception as e:
         logging.error(f"Error creating campaign: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-        
+
 @app.route('/get-campaigns', methods=['GET'])
 def get_campaigns():
     """Endpoint for fetching campaigns created by a user, including brand logo and campaign assets."""
@@ -313,10 +313,6 @@ def profile():
     except Exception as e:
         logging.error(f"Error handling profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/profile/<user_id>', methods=['GET'])
 def get_profile(user_id):
