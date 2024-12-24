@@ -155,11 +155,11 @@ def create_campaign():
                 "folder": "/brand_logos/",
                 "response_fields": ["is_private_file", "tags"],
                 "tags": ["tag1", "tag2"]
-            }            
-                upload_response = imagekit.upload_file(
+            }
+            upload_response = imagekit.upload_file(
                 file=brand_logo.stream,
                 file_name=secure_filename(brand_logo.filename),
-                options=options  # Use the instance of UploadFileRequestOptions here
+                options=options  
             )
             if 'error' in upload_response:
                 return jsonify({"error": "Failed to upload brand logo"}), 500
@@ -201,7 +201,7 @@ def create_campaign():
     except Exception as e:
         logging.error(f"Error creating campaign: {str(e)}", exc_info=True)
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
+        
 @app.route('/get-campaigns', methods=['GET'])
 def get_campaigns():
     """Endpoint for fetching campaigns created by a user, including brand logo and campaign assets."""
