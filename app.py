@@ -658,6 +658,104 @@ def active_campaigns():
         logging.error(f"Error fetching active campaigns: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/past-campaigns', methods=['GET'])
+def past_campaigns():
+    """Endpoint for fetching past campaigns for an influencer based on submitted URLs."""
+    try:
+        influencer_id = request.args.get('user_id')
+        if not influencer_id:
+            return jsonify({"error": "User ID is required"}), 400
+
+        # Log the user_id being passed
+        logging.debug(f"Fetching past campaigns for influencer user_id: {influencer_id}")
+
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=DictCursor) as cursor:
+                # Step 1: Fetch all influencer campaign details where campaign_status is 'past' and a submission_url exists
+                query_influencer_campaigns = """
+                    SELECT influencer_id, campaign_id, influencer_status, campaign_status, submission_url
+                    FROM influencer_campaign 
+                    WHERE influencer_id = %s 
+                    AND campaign_status = 'past'
+                    AND submission_url IS NOT NULL
+                """
+                
+                # Log the query for influencer campaigns
+                logging.debug(f"Executing query: {query_influencer_campaigns} with user_id: {influencer_id}")
+                cursor.execute(query_influencer_campaigns, (influencer_id,))
+                influencer_campaigns = cursor.fetchall()
+
+                # If no campaigns are found for the influencer, return an empty list
+                if not influencer_campaigns:
+                    return jsonify({"influencer_campaigns": []}), 200
+
+                # Step 2: Fetch campaign details for the campaign_ids obtained from the influencer_campaign table
+                campaign_ids = [campaign["campaign_id"] for campaign in influencer_campaigns]
+                
+                query_campaign_details = """
+                    SELECT * 
+                    FROM campaigns 
+                    WHERE id IN %s
+                """
+                
+                # Log the query for campaign details
+                logging.debug(f"Executing query: {query_campaign_details} with campaign_ids: {campaign_ids}")
+                cursor.execute(query_campaign_details, (tuple(campaign_ids),))
+                campaigns = cursor.fetchall()
+
+                # Log the campaigns fetched from the campaigns table
+                logging.debug(f"Campaign details fetched: {campaigns}")
+
+                if not campaigns:
+                    return jsonify({"campaigns": []}), 200  # Return empty list if no matching campaigns
+
+                # Combine influencer_campaigns with campaign details
+                combined_campaigns = []
+                for influencer_campaign in influencer_campaigns:
+                    # Match campaign details by campaign_id
+                    matching_campaign = next(
+                        (campaign for campaign in campaigns if campaign["id"] == influencer_campaign["campaign_id"]), 
+                        None
+                    )
+
+                    if matching_campaign:
+                        combined_campaigns.append({
+                            "campaign_id": matching_campaign["id"],
+                            "brand_name": matching_campaign["brand_name"],
+                            "brand_instagram_id": matching_campaign["brand_instagram_id"],
+                            "product": matching_campaign["product"],
+                            "website": matching_campaign["website"],
+                            "email": matching_campaign["email"],
+                            "caption": matching_campaign["caption"],
+                            "hashtag": matching_campaign["hashtag"],
+                            "tags": matching_campaign["tags"],
+                            "content_type": matching_campaign["content_type"],
+                            "target_followers": matching_campaign["target_followers"],
+                            "influencer_gender": matching_campaign["influencer_gender"],
+                            "influencer_location": matching_campaign["influencer_location"],
+                            "campaign_title": matching_campaign["campaign_title"],
+                            "target_reach": matching_campaign["target_reach"],
+                            "budget": matching_campaign["budget"],
+                            "goal": matching_campaign["goal"],
+                            "manager_name": matching_campaign["manager_name"],
+                            "contact_number": matching_campaign["contact_number"],
+                            "rewards": matching_campaign["rewards"],
+                            "status": matching_campaign["status"],
+                            "start_date": matching_campaign["start_date"],
+                            "end_date": matching_campaign["end_date"],
+                            "brand_logo": matching_campaign["brand_logo"],
+                            "campaign_assets": matching_campaign["campaign_assets"].split(',') if matching_campaign["campaign_assets"] else [],
+                            "description": matching_campaign["description"],
+                            "deadline": matching_campaign["deadline"],
+                            "submission_url": influencer_campaign["submission_url"]  # Add submission_url
+                        })
+
+                return jsonify({"past_campaigns": combined_campaigns}), 200
+
+    except Exception as e:
+        logging.error(f"Error fetching past campaigns: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 @app.route('/notifications/display', methods=['GET'])
 def display_notifications():
     """Endpoint to display notifications for a user."""
