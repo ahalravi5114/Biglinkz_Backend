@@ -151,8 +151,12 @@ def create_campaign():
         brand_logo = files.get('brand_logo')
         if brand_logo:
             # Create the options using ImageKit's expected format
-            options = {"folder": "/brand_logos/"}
-            upload_response = imagekit.upload_file(
+            options = {
+                "folder": "/brand_logos/",
+                "response_fields": ["is_private_file", "tags"],
+                "tags": ["tag1", "tag2"]
+            }            
+                upload_response = imagekit.upload_file(
                 file=brand_logo.stream,
                 file_name=secure_filename(brand_logo.filename),
                 options=options  # Use the instance of UploadFileRequestOptions here
@@ -174,10 +178,15 @@ def create_campaign():
         asset_files = files.getlist('campaign_assets')
         asset_urls = []
         for asset in asset_files:
+            options = {
+                "folder": "/campaign_assets/",
+                "response_fields": ["is_private_file", "tags"],
+                "tags": ["tag1", "tag2"]
+            }
             upload_response = imagekit.upload_file(
                 file=asset.stream,
                 file_name=secure_filename(asset.filename),
-                options=UploadFileRequestOptions(folder="/campaign_assets/")  # Use UploadFileRequestOptions here as well
+                options=options  
             )
             if 'error' in upload_response:
                 return jsonify({"error": "Failed to upload campaign asset"}), 500
