@@ -161,7 +161,8 @@ def create_campaign():
                 brand_logo,
                 folder="brand_logos",
                 use_filename=True,
-                unique_filename=False
+                unique_filename=True,
+                invalidate=True
             )
             if not upload_response or 'secure_url' not in upload_response:
                 return jsonify({"error": "Failed to upload brand logo"}), 500
@@ -184,7 +185,8 @@ def create_campaign():
                 asset,
                 folder="campaign_assets",
                 use_filename=True,
-                unique_filename=False
+                unique_filename=True,
+                invalidate=True
             )
             if not upload_response or 'secure_url' not in upload_response:
                 return jsonify({"error": "Failed to upload campaign asset"}), 500
