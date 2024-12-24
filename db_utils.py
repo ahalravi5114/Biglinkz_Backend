@@ -62,7 +62,7 @@ def create_campaign_in_db(data):
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 # Execute the query with data
-                cursor.execute(query, tuple(data.values()))
+                cursor.execute(query,data)
                 
                 # Fetch the inserted campaign data
                 campaign = cursor.fetchone()
