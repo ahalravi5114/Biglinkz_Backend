@@ -151,7 +151,7 @@ def create_campaign():
         brand_logo = files.get('brand_logo')
         if brand_logo:
             # Create the options using ImageKit's expected format
-            options = UploadFileRequestOptions(folder="/brand_logos/")
+            options = {"folder": "/brand_logos/"}
             upload_response = imagekit.upload_file(
                 file=brand_logo.stream,
                 file_name=secure_filename(brand_logo.filename),
