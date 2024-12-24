@@ -161,7 +161,7 @@ def create_campaign():
         logo_filename = secure_filename(brand_logo.filename)
         logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo_filename)
         brand_logo.save(logo_path)
-        data['brand_logo'] = logo_path  # Store the file path in the campaign data
+        data['brand_logo'] = f"{request.host_url}uploads/{logo_filename}"
 
         start_date_str = data['start_date']
         try:
@@ -173,13 +173,14 @@ def create_campaign():
 
         # Handle campaign assets upload (multiple files)
         asset_files = files.getlist('campaign_assets')  # Allow multiple files for assets
-        asset_paths = []
+        asset_urls = []
         for asset in asset_files:
             asset_filename = secure_filename(asset.filename)
             asset_path = os.path.join(app.config['UPLOAD_FOLDER'], asset_filename)
             asset.save(asset_path)
-            asset_paths.append(asset_path)
-        data['campaign_assets'] = ','.join(asset_paths)  # Store asset paths as a comma-separated string
+            asset_urls.append(f"{request.host_url}uploads/{asset_filename}")
+        data['campaign_assets'] = ','.join(asset_urls)  # Store asset URLs as a comma-separated string
+
 
         # Insert campaign into the database
         create_campaign_in_db(data)
