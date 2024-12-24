@@ -11,7 +11,8 @@ from instagrapi import Client
 import smtplib 
 from werkzeug.utils import secure_filename
 from apscheduler.schedulers.background import BackgroundScheduler
-from imagekitio import ImageKit, UploadFileRequestOptions
+from imagekitio import ImageKit
+from imagekitio.models import UploadFileRequestOptions
 
 app = Flask(__name__)  
 CORS(app)
