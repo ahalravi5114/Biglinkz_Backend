@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection, update_campaign_status, schedule_campaign_status_update
+from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection, update_campaign_status, run_continuously
 import os
 from datetime import datetime, timedelta
 import pytz
@@ -9,23 +9,13 @@ import logging
 from psycopg2.extras import DictCursor
 from instagrapi import Client  
 import smtplib 
-from flask_mail import Mail
-from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
 from apscheduler.schedulers.background import BackgroundScheduler
 from imagekitio import ImageKit
-
+from imagekitio.models import UploadFileRequestOptions
 
 app = Flask(__name__)  
 CORS(app)
-
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  
-app.config['MAIL_PASSWORD'] = 'your-email-password'  
-
-mail = Mail(app)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -160,10 +150,12 @@ def create_campaign():
         # Upload brand logo
         brand_logo = files.get('brand_logo')
         if brand_logo:
+            # Create the options using ImageKit's expected format
+            options = UploadFileRequestOptions(folder="/brand_logos/")
             upload_response = imagekit.upload_file(
                 file=brand_logo.stream,
                 file_name=secure_filename(brand_logo.filename),
-                options={"folder": "/brand_logos/"}
+                options=options  # Use the instance of UploadFileRequestOptions here
             )
             if 'error' in upload_response:
                 return jsonify({"error": "Failed to upload brand logo"}), 500
@@ -185,7 +177,7 @@ def create_campaign():
             upload_response = imagekit.upload_file(
                 file=asset.stream,
                 file_name=secure_filename(asset.filename),
-                options={"folder": "/campaign_assets/"}
+                options=UploadFileRequestOptions(folder="/campaign_assets/")  # Use UploadFileRequestOptions here as well
             )
             if 'error' in upload_response:
                 return jsonify({"error": "Failed to upload campaign asset"}), 500
@@ -200,7 +192,7 @@ def create_campaign():
     except Exception as e:
         logging.error(f"Error creating campaign: {str(e)}", exc_info=True)
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-                
+
 @app.route('/get-campaigns', methods=['GET'])
 def get_campaigns():
     """Endpoint for fetching campaigns created by a user, including brand logo and campaign assets."""
@@ -767,5 +759,7 @@ def start_scheduler():
     schedule_campaign_status_update()
 
 if __name__ == '__main__':
-    start_scheduler()
-    app.run(debug=True)
+    try:
+        run_continuously()
+    except KeyboardInterrupt:
+        logging.info("Campaign status update script stopped.")
