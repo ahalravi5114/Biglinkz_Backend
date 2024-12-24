@@ -60,7 +60,7 @@ def create_campaign_in_db(data):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Execute the query with data
                 cursor.execute(query, tuple(data.values()))
                 
