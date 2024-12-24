@@ -13,6 +13,8 @@ from flask_mail import Mail
 from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
 from apscheduler.schedulers.background import BackgroundScheduler
+from imagekitio import ImageKit
+
 
 app = Flask(__name__)  
 CORS(app)
@@ -27,11 +29,6 @@ mail = Mail(app)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
-
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -119,10 +116,15 @@ def signup():
         logging.error(f"Signup error: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+imagekit = ImageKit(
+    public_key = 'public_1s+D2MvH27O/SJaeS+lNkjvNZsM=',
+    private_key = 'private_KtzwFAMxiOYrWOm2CnWJIaLRFXM=',
+    url_endpoint ='https://ik.imagekit.io/v9hd9vxtx'
+)
 
 @app.route('/create-campaign', methods=['POST'])
 def create_campaign():
-    """Endpoint for creating a new campaign with file uploads."""
+    """Endpoint for creating a new campaign with file uploads to ImageKit."""
     try:
         # Use form data for both text and file fields
         data = request.form.to_dict()
@@ -134,7 +136,7 @@ def create_campaign():
             'caption', 'hashtag', 'tags', 'content_type', 'target_followers',
             'influencer_gender', 'influencer_location', 'campaign_title', 'target_reach',
             'budget', 'goal', 'manager_name', 'contact_number', 'rewards',
-            'start_date', 'end_date', 'brand_logo', 'campaign_assets','description'
+            'start_date', 'end_date', 'brand_logo', 'campaign_assets', 'description'
         ]
 
         for field in required_fields:
@@ -156,13 +158,16 @@ def create_campaign():
         # Add user_id to campaign data
         data['user_id'] = user_id
 
-        # Handle brand logo upload
+        # Handle brand logo upload to ImageKit
         brand_logo = files.get('brand_logo')
-        logo_filename = secure_filename(brand_logo.filename)
-        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo_filename)
-        brand_logo.save(logo_path)
-        data['brand_logo'] = logo_path  # Store the file path in the campaign data
+        upload_response = imagekit.upload_file(
+            file=brand_logo.stream,  # Use file stream
+            file_name=secure_filename(brand_logo.filename),
+            options={"folder": "/brand_logos/"}
+        )
+        data['brand_logo'] = upload_response.get('url')  # Store the file URL in the campaign data
 
+        # Parse and validate start_date
         start_date_str = data['start_date']
         try:
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
@@ -171,15 +176,17 @@ def create_campaign():
         except ValueError as ve:
             return jsonify({"error": "Invalid date format for start_date. Expected format: YYYY-MM-DD"}), 400
 
-        # Handle campaign assets upload (multiple files)
+        # Handle campaign assets upload to ImageKit
         asset_files = files.getlist('campaign_assets')  # Allow multiple files for assets
-        asset_paths = []
+        asset_urls = []
         for asset in asset_files:
-            asset_filename = secure_filename(asset.filename)
-            asset_path = os.path.join(app.config['UPLOAD_FOLDER'], asset_filename)
-            asset.save(asset_path)
-            asset_paths.append(asset_path)
-        data['campaign_assets'] = ','.join(asset_paths)  # Store asset paths as a comma-separated string
+            upload_response = imagekit.upload_file(
+                file=asset.stream,  # Use file stream
+                file_name=secure_filename(asset.filename),
+                options={"folder": "/campaign_assets/"}
+            )
+            asset_urls.append(upload_response.get('url'))
+        data['campaign_assets'] = ','.join(asset_urls)  # Store asset URLs as a comma-separated string
 
         # Insert campaign into the database
         create_campaign_in_db(data)
@@ -189,7 +196,7 @@ def create_campaign():
     except Exception as e:
         logging.error(f"Error creating campaign: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
+        
 @app.route('/get-campaigns', methods=['GET'])
 def get_campaigns():
     """Endpoint for fetching campaigns created by a user, including brand logo and campaign assets."""
