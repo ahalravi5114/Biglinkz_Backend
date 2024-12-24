@@ -113,12 +113,6 @@ def signup():
         logging.error(f"Signup error: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-imagekit = ImageKit(
-    public_key = 'public_1s+D2MvH27O/SJaeS+lNkjvNZsM=',
-    private_key = 'private_KtzwFAMxiOYrWOm2CnWJIaLRFXM=',
-    url_endpoint ='https://ik.imagekit.io/v9hd9vxtx'
-)
-
 @app.route('/create-campaign', methods=['POST'])
 def create_campaign():
     """Endpoint for creating a new campaign with file uploads to Cloudinary."""
