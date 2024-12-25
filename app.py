@@ -386,9 +386,12 @@ def get_eligible_campaigns():
                 influencer_id = influencer["influencer_id"]
                 influencer_followers = influencer["followers"]
 
-                campaign_query = """ 
-                SELECT * FROM campaigns WHERE CAST(target_followers AS INTEGER) <= %s AND id NOT IN (SELECT campaign_id FROM influencer_campaign WHERE CAST(influencer_id AS TEXT) = %s)"""
-                cursor.execute(campaign_query, (influencer_followers, str(influencer_id)))
+                campaign_query = """
+                    SELECT *
+                    FROM campaigns
+                    WHERE target_followers <= %s
+                """
+                cursor.execute(campaign_query, (influencer_followers,))
 
                 campaigns = cursor.fetchall()
                 if not campaigns:
