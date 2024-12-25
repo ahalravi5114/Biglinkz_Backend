@@ -167,10 +167,3 @@ def update_campaign_status():
 
     except Exception as e:
         logging.error(f"Error updating campaign status: {e}")
-
-# Function to continuously check and update campaign statuses
-def run_continuously():
-    logging.info("Starting continuous campaign status updates.")
-    while True:
-        update_campaign_status()
-        time.sleep(180) 

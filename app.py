@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection, update_campaign_status, run_continuously
+from db_utils import get_user_id_by_email, create_campaign_in_db, get_db_connection, update_campaign_status
 import os
 from datetime import datetime, timedelta
 import pytz
@@ -15,9 +15,11 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 from threading import Thread
+from celery import Celery
 
 app = Flask(__name__)  
 CORS(app)
+celery = Celery(app.name, broker='redis://localhost:6379/0')
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -27,6 +29,17 @@ cloudinary.config(
     api_key="633636381374495", 
     api_secret="yawcgmBjl2wypJ4BHHXyR-LJY2s"
 )
+
+@celery.task
+def update_campaign_status_task():
+    update_campaign_status()
+
+celery.conf.beat_schedule = {
+    'update_campaign_status': {
+        'task': 'app.update_campaign_status_task',
+        'schedule': 180.0,  # Run every 3 minutes
+    },
+}
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -830,10 +843,4 @@ def update_notification_status():
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    try:
-        thread = Thread(target=run_continuously, daemon=True)
-        thread.start()
-
-        app.run()
-    except KeyboardInterrupt:
-        logging.info("Campaign status update script stopped.")
+    app.run(debug=True)
