@@ -4,7 +4,6 @@ import os
 from datetime import datetime, timedelta
 import secrets
 import string
-from flask_mail import Message, Mail
 import logging
 from email.mime.text import MIMEText
 import smtplib
