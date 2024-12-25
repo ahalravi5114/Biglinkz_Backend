@@ -171,7 +171,7 @@ def create_campaign():
         except ValueError:
             return jsonify({"error": "Invalid date format for start_date. Expected format: YYYY-MM-DD"}), 400
 
-        # Upload campaign assets to Cloudinary
+        # Upload campaign assets to Cloudinary (CDN)
         asset_files = files.getlist('campaign_assets')
         asset_urls = []
         for asset in asset_files:

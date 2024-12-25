@@ -15,7 +15,7 @@ import pytz
 
 logger = logging.getLogger(__name__)
 
-# Get the database URL from environment variables
+# Get the database URL from environment variables - DB connection
 DB_URL = os.getenv('DATABASE_URL')
 if not DB_URL:
     raise ValueError("DATABASE_URL environment variable is not set.")
