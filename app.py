@@ -757,7 +757,7 @@ def display_notifications():
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query = """
-                SELECT content, campaign_id, created_at 
+                SELECT id, content, campaign_id, created_at 
                 FROM notifications 
                 WHERE user_id = %s 
                 ORDER BY created_at DESC
@@ -770,7 +770,7 @@ def display_notifications():
 
         # Prepare the response
         notification_list = [
-            {"content": notification[0],"campaign_id": notification[1], "created_at": notification[2].isoformat() if notification[2] else None}
+            {"id": notification[0], "content": notification[1],"campaign_id": notification[2], "created_at": notification[3].isoformat() if notification[3] else None}
             for notification in notifications
         ]
 
@@ -783,8 +783,50 @@ def display_notifications():
         logging.error(f"Error retrieving notifications: {str(e)}")
         return jsonify({"error": "An error occurred while retrieving notifications"}), 500
 
-def start_scheduler():
-    schedule_campaign_status_update()
+@app.route('/update-notification', methods=['POST'])
+def update_notification_status():
+    """
+    Endpoint to update the status of a notification to 'viewed'.
+    Expects notification_id in the JSON payload.
+    """
+    try:
+        data = request.get_json()
+
+        # Check for required field
+        if "notification_id" not in data:
+            return jsonify({"error": "Missing field: notification_id"}), 400
+
+        notification_id = data["notification_id"]
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Check if the notification exists
+                select_query = """
+                    SELECT id, status FROM notifications
+                    WHERE id = %s
+                """
+                cursor.execute(select_query, (notification_id,))
+                notification = cursor.fetchone()
+
+                if not notification:
+                    return jsonify({"error": "Notification not found"}), 404
+
+                # Update status if not already 'viewed'
+                if notification[1] == 'viewed':
+                    return jsonify({"message": "Notification is already marked as viewed"}), 200
+
+                update_query = """
+                    UPDATE notifications
+                    SET status = 'viewed'
+                    WHERE id = %s
+                """
+                cursor.execute(update_query, (notification_id,))
+                conn.commit()
+
+        return jsonify({"message": "Notification status updated to 'viewed'"}), 200
+    except Exception as e:
+        logging.error(f"Error updating notification status: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     try:
