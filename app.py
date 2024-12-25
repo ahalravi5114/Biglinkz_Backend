@@ -389,7 +389,7 @@ def get_eligible_campaigns():
                 campaign_query = """
                     SELECT *
                     FROM campaigns
-                    WHERE target_followers <= %s
+                    WHERE CAST(target_followers AS INTEGER) <= %s
                 """
                 cursor.execute(campaign_query, (influencer_followers,))
 
