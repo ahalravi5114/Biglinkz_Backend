@@ -829,7 +829,7 @@ def update_notification_status():
         logging.error(f"Error updating notification status: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     try:
         thread = Thread(target=run_continuously, daemon=True)
         thread.start()
