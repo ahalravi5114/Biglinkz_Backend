@@ -831,8 +831,12 @@ def update_notification_status():
     
 @app.route('/update-status', methods=['GET'])
 def update_status():
-    update_campaign_status()
-    return jsonify({"message": "Campaign statuses updated."})
+    try:
+        update_campaign_status()
+        return jsonify({"message": "Campaign statuses updated successfully"}), 200
+    except Exception as e:
+        logging.error(f"Error updating campaign statuses: {e}")
+        return jsonify({"error": "Failed to update campaign statuses"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
