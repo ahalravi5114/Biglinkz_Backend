@@ -387,10 +387,10 @@ def get_eligible_campaigns():
                 influencer_followers = influencer["followers"]
 
                 campaign_query = """ 
-                SELECT * FROM campaigns WHERE target_followers<= %s AND id NOT IN (SELECT campaign_id FROM influencer_campaign WHERE CAST(influencer_id AS TEXT) = %s)"""
+                SELECT * FROM campaigns WHERE CAST(target_followers AS INTEGER) <= %s AND id NOT IN (SELECT campaign_id FROM influencer_campaign WHERE CAST(influencer_id AS TEXT) = %s)"""
                 cursor.execute(campaign_query, (influencer_followers, str(influencer_id)))
+
                 campaigns = cursor.fetchall()
-                # Return the eligible campaigns
                 if not campaigns:
                     return jsonify({"message": "No eligible campaigns found"}), 200
 
