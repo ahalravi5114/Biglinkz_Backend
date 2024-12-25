@@ -18,7 +18,6 @@ from threading import Thread
 
 app = Flask(__name__)  
 CORS(app)
-celery = Celery(app.name, broker='redis://localhost:6379/0')
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
