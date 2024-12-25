@@ -757,7 +757,7 @@ def display_notifications():
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query = """
-                SELECT content, created_at 
+                SELECT content, campaign_id, created_at 
                 FROM notifications 
                 WHERE user_id = %s 
                 ORDER BY created_at DESC
