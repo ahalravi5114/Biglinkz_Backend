@@ -15,7 +15,6 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 from threading import Thread
-from celery import Celery
 
 app = Flask(__name__)  
 CORS(app)
@@ -29,17 +28,6 @@ cloudinary.config(
     api_key="633636381374495", 
     api_secret="yawcgmBjl2wypJ4BHHXyR-LJY2s"
 )
-
-@celery.task
-def update_campaign_status_task():
-    update_campaign_status()
-
-celery.conf.beat_schedule = {
-    'update_campaign_status': {
-        'task': 'app.update_campaign_status_task',
-        'schedule': 180.0,  # Run every 3 minutes
-    },
-}
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -841,6 +829,11 @@ def update_notification_status():
     except Exception as e:
         logging.error(f"Error updating notification status: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+    
+@app.route('/update-status', methods=['GET'])
+def update_status():
+    update_campaign_status()
+    return jsonify({"message": "Campaign statuses updated."})
 
 if __name__ == '__main__':
     app.run(debug=True)
