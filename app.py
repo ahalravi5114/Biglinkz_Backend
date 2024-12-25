@@ -223,9 +223,6 @@ def get_campaigns():
 
                 campaign_list = []
                 for campaign in campaigns:
-                    # Extract paths to brand logo and assets
-                    brand_logo_path = campaign.get("brand_logo", "")
-                    campaign_assets = campaign.get("campaign_assets", "").split(',') if campaign.get("campaign_assets") else []
 
                     campaign_list.append({
                         "campaign_id": campaign["id"],
@@ -251,9 +248,9 @@ def get_campaigns():
                         "status": campaign["status"],
                         "start_date": campaign["start_date"],
                         "end_date": campaign["end_date"],
-                        "brand_logo": brand_logo_path,  # Add brand logo path
-                        "campaign_assets": campaign_assets,
-                        "description": campaign["description"],# Add campaign assets paths
+                        "brand_logo": campaign["brand_logo"],
+                        "campaign_assets": campaign["campaign_assets"],
+                        "description": campaign["description"],
                         "deadline": campaign["deadline"]
                     })
 
