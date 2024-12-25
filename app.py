@@ -765,4 +765,4 @@ if __name__ == '__main__':
     try:
         run_continuously()
     except KeyboardInterrupt:
-        logging.info("Campaign status update script stopped.")
+        logging.info("Campaign status update script stopped.") 
