@@ -10,10 +10,10 @@ from email.mime.text import MIMEText
 import smtplib
 from flask import Flask, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
-
+import time  
+import pytz
 
 logger = logging.getLogger(__name__)
-
 
 # Get the database URL from environment variables
 DB_URL = os.getenv('DATABASE_URL')
@@ -60,9 +60,9 @@ def create_campaign_in_db(data):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Execute the query with data
-                cursor.execute(query, tuple(data.values()))
+                cursor.execute(query,data)
                 
                 # Fetch the inserted campaign data
                 campaign = cursor.fetchone()

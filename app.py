@@ -11,14 +11,21 @@ from instagrapi import Client
 import smtplib 
 from werkzeug.utils import secure_filename
 from apscheduler.schedulers.background import BackgroundScheduler
-from imagekitio import ImageKit
-from imagekitio.models import UploadFileRequestOptions
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 app = Flask(__name__)  
 CORS(app)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+cloudinary.config(
+    cloud_name="dfjafdlaa", 
+    api_key="633636381374495", 
+    api_secret="yawcgmBjl2wypJ4BHHXyR-LJY2s"
+)
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -106,15 +113,9 @@ def signup():
         logging.error(f"Signup error: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-imagekit = ImageKit(
-    public_key = 'public_1s+D2MvH27O/SJaeS+lNkjvNZsM=',
-    private_key = 'private_KtzwFAMxiOYrWOm2CnWJIaLRFXM=',
-    url_endpoint ='https://ik.imagekit.io/v9hd9vxtx'
-)
-
 @app.route('/create-campaign', methods=['POST'])
 def create_campaign():
-    """Endpoint for creating a new campaign with file uploads to ImageKit."""
+    """Endpoint for creating a new campaign with file uploads to Cloudinary."""
     try:
         # Parse form data and files
         data = request.form.to_dict()
@@ -147,23 +148,19 @@ def create_campaign():
 
         data['user_id'] = user_id
 
-        # Upload brand logo
+        # Upload brand logo to Cloudinary
         brand_logo = files.get('brand_logo')
         if brand_logo:
-            # Create the options using ImageKit's expected format
-            options = {
-                "folder": "/brand_logos/",
-                "response_fields": ["is_private_file", "tags"],
-                "tags": ["tag1", "tag2"]
-            }
-            upload_response = imagekit.upload_file(
-                file=brand_logo.stream,
-                file_name=secure_filename(brand_logo.filename),
-                options=options  
+            upload_response = cloudinary.uploader.upload(
+                brand_logo,
+                folder="brand_logos",
+                use_filename=True,
+                unique_filename=True,
+                invalidate=True
             )
-            if 'error' in upload_response:
+            if not upload_response or 'secure_url' not in upload_response:
                 return jsonify({"error": "Failed to upload brand logo"}), 500
-            data['brand_logo'] = upload_response['url']
+            data['brand_logo'] = upload_response['secure_url']
 
         # Parse and validate start_date
         start_date_str = data['start_date']
@@ -174,23 +171,20 @@ def create_campaign():
         except ValueError:
             return jsonify({"error": "Invalid date format for start_date. Expected format: YYYY-MM-DD"}), 400
 
-        # Upload campaign assets
+        # Upload campaign assets to Cloudinary
         asset_files = files.getlist('campaign_assets')
         asset_urls = []
         for asset in asset_files:
-            options = {
-                "folder": "/campaign_assets/",
-                "response_fields": ["is_private_file", "tags"],
-                "tags": ["tag1", "tag2"]
-            }
-            upload_response = imagekit.upload_file(
-                file=asset.stream,
-                file_name=secure_filename(asset.filename),
-                options=options  
+            upload_response = cloudinary.uploader.upload(
+                asset,
+                folder="campaign_assets",
+                use_filename=True,
+                unique_filename=True,
+                invalidate=True
             )
-            if 'error' in upload_response:
+            if not upload_response or 'secure_url' not in upload_response:
                 return jsonify({"error": "Failed to upload campaign asset"}), 500
-            asset_urls.append(upload_response['url'])
+            asset_urls.append(upload_response['secure_url'])
         data['campaign_assets'] = ','.join(asset_urls)
 
         # Insert into database

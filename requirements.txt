@@ -1,11 +1,12 @@
 flask==2.3.2
 psycopg2-binary==2.9.7
+python-dotenv==1.0.0
 gunicorn==21.2.0
 Flask-Cors==3.0.10
 Werkzeug==2.3.7
 pytz==2023.3
 instagrapi==1.17.5
 Pillow==8.1.1
-Flask-Mail==0.9.1
 apscheduler>=3.9.1
-imagekitio==3.2.0
+cloudinary==1.30.0
+six==1.16.0
