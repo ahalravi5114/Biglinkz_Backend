@@ -223,6 +223,11 @@ def get_campaigns():
 
                 campaign_list = []
                 for campaign in campaigns:
+                    campaign_assets = (
+                        campaign["campaign_assets"].split(",") 
+                        if campaign["campaign_assets"] else []
+                    )
+                    campaign_assets = [url.strip() for url in campaign_assets]
 
                     campaign_list.append({
                         "campaign_id": campaign["id"],
@@ -249,7 +254,7 @@ def get_campaigns():
                         "start_date": campaign["start_date"],
                         "end_date": campaign["end_date"],
                         "brand_logo": campaign["brand_logo"],
-                        "campaign_assets": campaign["campaign_assets"],
+                        "campaign_assets": campaign_assets,                       
                         "description": campaign["description"],
                         "deadline": campaign["deadline"]
                     })
@@ -350,14 +355,12 @@ def get_profile(user_id):
         logging.error(f"Error fetching profile for user_id {user_id}: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-from psycopg2.extras import DictCursor
-
 @app.route('/eligible-campaigns', methods=['GET'])
 def get_eligible_campaigns():
     """
     Endpoint for influencers to see campaigns they are eligible for.
     Compares influencer's followers count with target_followers of campaigns.
-    Fetches influencer data using user_id.
+    Excludes campaigns already present in the influencer_campaign table.
     """
     try:
         # Get the user_id from the query parameters
@@ -368,9 +371,9 @@ def get_eligible_campaigns():
 
         # Fetch influencer's insta_id and followers count from the database based on user_id
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=DictCursor) as cursor:  # Use DictCursor here
+            with conn.cursor(cursor_factory=DictCursor) as cursor:
                 influencer_query = """
-                    SELECT insta_id, followers
+                    SELECT id AS influencer_id, insta_id, followers
                     FROM influencer_profile
                     WHERE user_id = %s
                 """
@@ -380,7 +383,7 @@ def get_eligible_campaigns():
                 if not influencer:
                     return jsonify({"error": "Influencer profile not found"}), 404
 
-                insta_id = influencer["insta_id"]  # Access as a dictionary
+                influencer_id = influencer["influencer_id"]
                 influencer_followers = influencer["followers"]
 
                 # Fetch campaigns where the influencer meets the target followers criteria
@@ -388,17 +391,30 @@ def get_eligible_campaigns():
                     SELECT *
                     FROM campaigns
                     WHERE target_followers <= %s
+                    AND id NOT IN (
+                        SELECT campaign_id
+                        FROM influencer_campaign
+                        WHERE influencer_id = %s
+                    )
                 """
-                cursor.execute(campaign_query, (influencer_followers,))
+                cursor.execute(campaign_query, (influencer_followers, influencer_id))
                 campaigns = cursor.fetchall()
 
                 # Return the eligible campaigns
                 if not campaigns:
                     return jsonify({"message": "No eligible campaigns found"}), 200
 
+                campaign_list = []
+                for campaign in campaigns:
+                    campaign_assets = (
+                        campaign["campaign_assets"].split(",") 
+                        if campaign["campaign_assets"] else []
+                    )
+                    campaign_assets = [url.strip() for url in campaign_assets]
+
                 eligible_campaigns = [
                     {
-                        "campaign_id": campaign["id"],  # Access as a dictionary
+                        "campaign_id": campaign["id"],
                         "brand_name": campaign["brand_name"],
                         "brand_instagram_id": campaign["brand_instagram_id"],
                         "product": campaign["product"],
@@ -421,6 +437,8 @@ def get_eligible_campaigns():
                         "status": campaign["status"],
                         "start_date": campaign["start_date"],
                         "end_date": campaign["end_date"],
+                        "brand_logo": campaign["brand_logo"],
+                        "campaign_assets": campaign_assets,
                         "description": campaign["description"],
                         "deadline": campaign["deadline"]
                     }
@@ -615,7 +633,7 @@ def active_campaigns():
                 query_influencer_campaigns = """
                     SELECT influencer_id, campaign_id, influencer_status, campaign_status, submission_url
                     FROM influencer_campaign 
-                    WHERE influencer_id = %s AND influencer_status = 'accepted'
+                    WHERE influencer_id = %s AND influencer_status = 'accepted' AND campaign_status!='past'
                 """
                 
                 # Log the query for influencer campaigns
@@ -647,10 +665,18 @@ def active_campaigns():
                 if not campaigns:
                     return jsonify({"campaigns": []}), 200  # Return empty list if no matching campaigns
 
-                # Return both influencer_campaigns and campaigns as separate objects
+                processed_campaigns = []
+                for campaign in campaigns:
+                    campaign_dict = dict(campaign)  # Convert to dict
+                    if "campaign_assets" in campaign_dict and campaign_dict["campaign_assets"]:
+                        # Split campaign_assets by comma into a list
+                        campaign_dict["campaign_assets"] = campaign_dict["campaign_assets"].split(",")
+                    processed_campaigns.append(campaign_dict)
+
+                # Return both influencer_campaigns and processed campaigns as separate objects
                 return jsonify({
                     "influencer_campaigns": [dict(record) for record in influencer_campaigns],  # Convert list of tuples to list of dicts
-                    "campaigns": [dict(record) for record in campaigns]  # Convert list of tuples to list of dicts
+                    "campaigns": processed_campaigns  # Return campaigns with campaign_assets as an array
                 }), 200
 
     except Exception as e:
@@ -706,9 +732,18 @@ def past_campaigns():
                 logging.debug(f"Campaign details fetched: {campaigns}")
 
                 # Return both influencer_campaigns and campaigns as separate objects
+                processed_campaigns = []
+                for campaign in campaigns:
+                    campaign_dict = dict(campaign)  # Convert to dict
+                    if "campaign_assets" in campaign_dict and campaign_dict["campaign_assets"]:
+                        # Split campaign_assets by comma into a list
+                        campaign_dict["campaign_assets"] = campaign_dict["campaign_assets"].split(",")
+                    processed_campaigns.append(campaign_dict)
+
+                # Return both influencer_campaigns and processed campaigns as separate objects
                 return jsonify({
                     "influencer_campaigns": [dict(record) for record in influencer_campaigns],  # Convert list of tuples to list of dicts
-                    "campaigns": [dict(record) for record in campaigns]  # Convert list of tuples to list of dicts
+                    "campaigns": processed_campaigns  # Return campaigns with campaign_assets as an array
                 }), 200
 
     except Exception as e:
