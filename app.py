@@ -14,6 +14,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+from threading import Thread
 
 app = Flask(__name__)  
 CORS(app)
@@ -828,8 +829,11 @@ def update_notification_status():
         logging.error(f"Error updating notification status: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-if __name__ == '__main__':
+if _name_ == '_main_':
     try:
-        run_continuously()
+        thread = Thread(target=run_continuously, daemon=True)
+        thread.start()
+
+        app.run()
     except KeyboardInterrupt:
-        logging.info("Campaign status update script stopped.") 
+        logging.info("Campaign status update script stopped.")
