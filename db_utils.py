@@ -173,4 +173,4 @@ def run_continuously():
     logging.info("Starting continuous campaign status updates.")
     while True:
         update_campaign_status()
-        time.sleep(60) 
+        time.sleep(180) 
