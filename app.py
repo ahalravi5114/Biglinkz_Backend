@@ -17,7 +17,7 @@ import cloudinary.api
 from threading import Thread
 
 app = Flask(__name__)  
-CORS(app)
+CORS(app, origins="*")
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
