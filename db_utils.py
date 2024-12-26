@@ -131,14 +131,14 @@ def update_campaign_status():
 
                 # Fetch influencer_campaigns and their start_date from campaigns table
                 influencer_query = """
-                    SELECT campaign_id, campaign_status, submission_url, deadline
+                    SELECT campaign_id, campaign_status, submission_url, deadline, influencer_id
                     FROM influencer_campaign
                 """
                 cursor.execute(influencer_query)
                 influencer_campaigns = cursor.fetchall()
 
                 for campaign in influencer_campaigns:
-                    campaign_id, campaign_status, submission_url, deadline = campaign
+                    campaign_id, campaign_status, submission_url, deadline , influencer_id = campaign
 
                     # Fetch start_date from the campaigns table for each influencer_campaign
                     cursor.execute("""
@@ -185,9 +185,10 @@ def update_campaign_status():
                             update_query = """
                                 UPDATE influencer_campaign
                                 SET campaign_status = %s
-                                WHERE campaign_id = %s
+                                WHERE campaign_id = %s AND influencer_id = %s
                             """
-                            cursor.execute(update_query, (new_campaign_status, campaign_id))
+                            cursor.execute(update_query, (new_campaign_status, campaign_id, influencer_id))
+
                             conn.commit()
                             logging.info(f"Influencer Campaign ID {campaign_id} updated to status {new_campaign_status}")
 
