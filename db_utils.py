@@ -169,10 +169,10 @@ def update_campaign_status():
                             deadline = deadline.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
 
                         # Determine new campaign_status
-                        if current_time < start_date:
+                        if current_time < deadline:
                             new_campaign_status = 'submissiondue'
-                        elif start_date <= current_time :
-                            new_campaign_status = 'live' if submission_url else 'submissiondue'
+                        elif start_date <= current_time and submission_url:
+                            new_campaign_status = 'live'
                         elif current_time > deadline and not submission_url:
                             new_campaign_status = 'rejected'
                         elif current_time > deadline and submission_url and current_time > end_date:
