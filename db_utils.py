@@ -142,7 +142,7 @@ def update_campaign_status():
 
                     # Fetch start_date from the campaigns table for each influencer_campaign
                     cursor.execute("""
-                        SELECT start_date
+                        SELECT start_date , end_date
                         FROM campaigns
                         WHERE id = %s
                     """, (campaign_id,))
@@ -150,27 +150,32 @@ def update_campaign_status():
 
                     if start_date_row:
                         start_date = start_date_row[0]
+                        end_date = start_date_row[1]
 
                         # Convert start_date and deadline from string to datetime if they are strings
                         if isinstance(start_date, str):
                             start_date = datetime.fromisoformat(start_date)
+                        if isinstance(end_date, str):
+                            end_date = datetime.fromisoformat(end_date)
                         if isinstance(deadline, str):
                             deadline = datetime.fromisoformat(deadline)
 
                         # Convert to IST if not already timezone-aware
                         if start_date.tzinfo is None:
                             start_date = start_date.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
+                        if end_date.tzinfo is None:
+                            end_date = end_date.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
                         if deadline.tzinfo is None:
                             deadline = deadline.replace(tzinfo=pytz.UTC).astimezone(ist_timezone)
 
                         # Determine new campaign_status
                         if current_time < start_date:
                             new_campaign_status = 'submissiondue'
-                        elif start_date <= current_time <= deadline:
+                        elif start_date <= current_time :
                             new_campaign_status = 'live' if submission_url else 'submissiondue'
                         elif current_time > deadline and not submission_url:
                             new_campaign_status = 'rejected'
-                        elif current_time > deadline and submission_url:
+                        elif current_time > deadline and submission_url and current_time > end_date:
                             new_campaign_status = 'past'
                         else:
                             new_campaign_status = 'expired'
