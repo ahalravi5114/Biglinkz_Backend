@@ -286,29 +286,42 @@ def profile():
 
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                insert_query = """
-                    INSERT INTO influencer_profile (
-                        user_id, first_name, last_name, insta_id, email, phone_number, followers,
-                        country, state, city, category
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (insta_id) DO UPDATE SET
-                        user_id = EXCLUDED.user_id,
-                        first_name = EXCLUDED.first_name,
-                        last_name = EXCLUDED.last_name,
-                        email = EXCLUDED.email,
-                        phone_number = EXCLUDED.phone_number,
-                        followers = EXCLUDED.followers,
-                        country = EXCLUDED.country,
-                        state = EXCLUDED.state,
-                        city = EXCLUDED.city,
-                        category = EXCLUDED.category
+                # Check if the user_id exists in the table
+                check_query = """
+                    SELECT 1 FROM influencer_profile WHERE user_id = %s
                 """
-                cursor.execute(insert_query, (
-                    data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
-                    data["email"], data["phone_number"], data["followers"],
-                    data["country"], data["state"], data["city"],
-                    data["category"]
-                ))
+                cursor.execute(check_query, (data["user_id"],))
+                existing_user = cursor.fetchone()
+
+                if existing_user:
+                    # If user_id exists, update the record
+                    update_query = """
+                        UPDATE influencer_profile
+                        SET first_name = %s, last_name = %s, insta_id = %s, email = %s, 
+                            phone_number = %s, followers = %s, country = %s, state = %s, 
+                            city = %s, category = %s
+                        WHERE user_id = %s
+                    """
+                    cursor.execute(update_query, (
+                        data["first_name"], data["last_name"], data["insta_id"],
+                        data["email"], data["phone_number"], data["followers"],
+                        data["country"], data["state"], data["city"], data["category"],
+                        data["user_id"]
+                    ))
+                else:
+                    # If user_id does not exist, insert a new record
+                    insert_query = """
+                        INSERT INTO influencer_profile (
+                            user_id, first_name, last_name, insta_id, email, phone_number, followers,
+                            country, state, city, category
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(insert_query, (
+                        data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
+                        data["email"], data["phone_number"], data["followers"],
+                        data["country"], data["state"], data["city"], data["category"]
+                    ))
+
                 conn.commit()
 
         return jsonify({"message": "Profile added/updated successfully"}), 200
