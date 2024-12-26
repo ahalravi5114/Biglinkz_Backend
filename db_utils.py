@@ -171,7 +171,7 @@ def update_campaign_status():
                         # Determine new campaign_status
                         if current_time < deadline:
                             new_campaign_status = 'submissiondue'
-                        elif start_date <= current_time and submission_url:
+                        elif start_date <= current_time < end_date and submission_url:
                             new_campaign_status = 'live'
                         elif current_time > deadline and not submission_url:
                             new_campaign_status = 'rejected'
