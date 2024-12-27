@@ -17,7 +17,7 @@ import cloudinary.api
 from threading import Thread
 
 app = Flask(__name__)  
-CORS(app)
+CORS(app,origins="*")
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -920,6 +920,6 @@ def get_campaign_influencers():
     except Exception as e:
         logging.error(f"Error fetching influencers: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-                
+
 if __name__ == '__main__':
     app.run(debug=True)
