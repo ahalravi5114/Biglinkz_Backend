@@ -851,5 +851,75 @@ def update_status():
         logging.error(f"Error updating campaign statuses: {e}")
         return jsonify({"error": "Failed to update campaign statuses"}), 500
 
+@app.route('/get-campaign-influencers', methods=['GET'])
+def get_campaign_influencers():
+    """Endpoint for fetching influencers associated with a specific campaign."""
+    try:
+        campaign_id = request.args.get('campaign_id')
+        if not campaign_id:
+            return jsonify({"error": "Campaign ID is required"}), 400
+
+        # Log the campaign_id being passed
+        logging.debug(f"Fetching influencers for campaign_id: {campaign_id}")
+
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=DictCursor) as cursor:
+                # First query: Fetch influencer IDs and their submission URLs where the status is "accepted"
+                campaign_query = """
+                    SELECT 
+                        influencer_id,
+                        submission_url
+                    FROM 
+                        influencer_campaign
+                    WHERE 
+                        campaign_id = %s AND influencer_status = 'accepted'
+                """
+                logging.debug(f"Executing campaign query: {campaign_query} with campaign_id: {campaign_id}")
+                cursor.execute(campaign_query, (campaign_id,))
+                influencer_campaign_data = cursor.fetchall()
+
+                # Log campaign-related data
+                logging.debug(f"Accepted campaign influencers found: {influencer_campaign_data}")
+
+                if not influencer_campaign_data:
+                    return jsonify({"influencers": []}), 200  # Return empty list if no influencers found
+
+                # Second query: Fetch details for each influencer
+                influencer_details = []
+                for record in influencer_campaign_data:
+                    influencer_id = record["influencer_id"]
+
+                    profile_query = """
+                        SELECT 
+                            first_name,
+                            last_name,
+                            insta_id
+                        FROM 
+                            influencer_profile
+                        WHERE 
+                            user_id = %s
+                    """
+                    logging.debug(f"Executing profile query: {profile_query} with influencer_id: {influencer_id}")
+                    cursor.execute(profile_query, (influencer_id,))
+                    profile_data = cursor.fetchone()
+
+                    if profile_data:
+                        influencer_details.append({
+                            "influencer_id": influencer_id,
+                            "first_name": profile_data["first_name"],
+                            "last_name": profile_data["last_name"],
+                            "insta_id": profile_data["insta_id"],
+                            "submission_url": record["submission_url"]
+                        })
+
+                # Log the final influencer details
+                logging.debug(f"Final influencer details: {influencer_details}")
+
+                return jsonify({"influencers": influencer_details}), 200
+
+    except Exception as e:
+        logging.error(f"Error fetching influencers: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+                
 if __name__ == '__main__':
     app.run(debug=True)
