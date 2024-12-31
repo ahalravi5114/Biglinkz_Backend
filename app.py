@@ -921,5 +921,104 @@ def get_campaign_influencers():
         logging.error(f"Error fetching influencers: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/businessprofile', methods=['POST'])
+def store_business():
+    """
+    Endpoint to add or update business profile details.
+    Expects business details in JSON payload.
+    """
+    try:
+        data = request.get_json()
+
+        required_fields = [
+            "name", "email", "website","country","city","state", "category", "password", "user_id", 
+        ]
+
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
+
+        # Optional fields
+        insta_id = data.get("insta_id")
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Check if the email exists in the table
+                check_query = """
+                    SELECT 1 FROM business_profile WHERE user_id = %s
+                """
+                cursor.execute(check_query, (data["user_id"],))
+                existing_business = cursor.fetchone()
+
+                if existing_business:
+                    # If email exists, update the record
+                    update_query = """
+                        UPDATE business_profile
+                        SET name = %s, website = %s, insta_id = %s,
+                            country = %s, state = %s, city = %s, category = %s, password = %s, email= %s
+                        WHERE user_id = %s
+                    """
+                    cursor.execute(update_query, (
+                        data["name"], data["website"], insta_id,
+                        data["country"], data["state"],data["city"],data["category"], data["password"],data["email"],
+                        data["user_id"]
+                    ))
+                else:
+                    # If email does not exist, insert a new record
+                    insert_query = """
+                        INSERT INTO business_profile (
+                            name, email, website, insta_id,
+                            country,state,city category, password,user_id
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(insert_query, (
+                        data["name"], data["email"], data["website"], insta_id,
+                        data["country"],data["state"],data["city"], data["category"], data["password"],data["user_id"]
+                    ))
+
+                conn.commit()
+
+        return jsonify({"message": "Business profile added/updated successfully"}), 200
+    except Exception as e:
+        logging.error(f"Error handling business profile: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+@app.route('/getBusinessProfile/<user_id>', methods=['GET'])
+def get_business_by_user_id(user_id):
+    """
+    Endpoint to get business profile details based on user_id.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Query to fetch the business profile details for the given user_id
+                select_query = """
+                    SELECT name, email, website, insta_id, country, state, city, category, password
+                    FROM business_profile
+                    WHERE user_id = %s
+                """
+                cursor.execute(select_query, (user_id,))
+                business = cursor.fetchone()
+
+                if business:
+                    # Prepare response with the business profile data
+                    business_data = {
+                        "name": business[0],
+                        "email": business[1],
+                        "website": business[2],
+                        "insta_id": business[3],
+                        "country": business[4],
+                        "state": business[5],
+                        "city": business[6],
+                        "category": business[7],
+                        "password": business[8],
+                    }
+                    return jsonify(business_data), 200
+                else:
+                    return jsonify({"error": "Business profile not found"}), 404
+
+    except Exception as e:
+        logging.error(f"Error fetching business profile for user_id {user_id}: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
