@@ -931,7 +931,7 @@ def store_business():
         data = request.get_json()
 
         required_fields = [
-            "name", "email", "website","country","city","state", "category", "password", "user_id", 
+            "name", "email", "website","country","city","state", "category","user_id", 
         ]
 
         missing_fields = [field for field in required_fields if field not in data]
@@ -955,12 +955,12 @@ def store_business():
                     update_query = """
                         UPDATE business_profile
                         SET name = %s, website = %s, insta_id = %s,
-                            country = %s, state = %s, city = %s, category = %s, password = %s, email= %s
+                            country = %s, state = %s, city = %s, category = %s, email= %s
                         WHERE user_id = %s
                     """
                     cursor.execute(update_query, (
                         data["name"], data["website"], insta_id,
-                        data["country"], data["state"],data["city"],data["category"], data["password"],data["email"],
+                        data["country"], data["state"],data["city"],data["category"],data["email"],
                         data["user_id"]
                     ))
                 else:
@@ -968,12 +968,12 @@ def store_business():
                     insert_query = """
                         INSERT INTO business_profile (
                             name, email, website, insta_id,
-                            country,state,city category, password,user_id
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            country,state,city category,user_id
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     cursor.execute(insert_query, (
                         data["name"], data["email"], data["website"], insta_id,
-                        data["country"],data["state"],data["city"], data["category"], data["password"],data["user_id"]
+                        data["country"],data["state"],data["city"], data["category"],data["user_id"]
                     ))
 
                 conn.commit()
@@ -992,7 +992,7 @@ def get_business_by_user_id(user_id):
             with conn.cursor() as cursor:
                 # Query to fetch the business profile details for the given user_id
                 select_query = """
-                    SELECT name, email, website, insta_id, country, state, city, category, password
+                    SELECT name, email, website, insta_id, country, state, city, category
                     FROM business_profile
                     WHERE user_id = %s
                 """
@@ -1010,7 +1010,6 @@ def get_business_by_user_id(user_id):
                         "state": business[5],
                         "city": business[6],
                         "category": business[7],
-                        "password": business[8],
                     }
                     return jsonify(business_data), 200
                 else:
