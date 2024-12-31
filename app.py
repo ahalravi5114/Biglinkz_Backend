@@ -968,7 +968,7 @@ def store_business():
                     insert_query = """
                         INSERT INTO business_profile (
                             name, email, website, insta_id,
-                            country,state,city category,user_id
+                            country,state,city, category,user_id
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     cursor.execute(insert_query, (
@@ -982,6 +982,7 @@ def store_business():
     except Exception as e:
         logging.error(f"Error handling business profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        
 @app.route('/getBusinessProfile/<user_id>', methods=['GET'])
 def get_business_by_user_id(user_id):
     """
