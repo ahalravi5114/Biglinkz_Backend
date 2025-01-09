@@ -1020,5 +1020,60 @@ def get_business_by_user_id(user_id):
         logging.error(f"Error fetching business profile for user_id {user_id}: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/addAccountDetails', methods=['POST'])
+def add_payment():
+    """
+    Endpoint to add or update payment details.
+    Expects payment details in JSON payload along with user_id.
+    """
+    try:
+        data = request.get_json()
+
+        required_fields = ["user_id", "account_number", "upi", "ifsc", "mici"]
+
+        # Check for missing fields in the payload
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Check if the user_id exists in the payments table
+                check_query = """
+                    SELECT 1 FROM payments WHERE user_id = %s
+                """
+                cursor.execute(check_query, (data["user_id"],))
+                existing_user = cursor.fetchone()
+
+                if existing_user:
+                    # If user_id exists, update the record
+                    update_query = """
+                        UPDATE payments
+                        SET account_number = %s, upi = %s, ifsc = %s, mici = %s
+                        WHERE user_id = %s
+                    """
+                    cursor.execute(update_query, (
+                        data["account_number"], data["upi"], data["ifsc"], 
+                        data["mici"], data["user_id"]
+                    ))
+                else:
+                    # If user_id does not exist, insert a new record
+                    insert_query = """
+                        INSERT INTO payments (user_id, account_number, upi, ifsc, mici)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(insert_query, (
+                        data["user_id"], data["account_number"], data["upi"], 
+                        data["ifsc"], data["mici"]
+                    ))
+
+                conn.commit()
+
+        return jsonify({"message": "Payment details added/updated successfully"}), 200
+    except Exception as e:
+        logging.error(f"Error handling payment details: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
