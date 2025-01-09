@@ -1074,6 +1074,39 @@ def add_payment():
         logging.error(f"Error handling payment details: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/payment/<user_id>', methods=['GET'])
+def get_payment(user_id):
+    """
+    Endpoint to get payment details based on user_id.
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Query to fetch the payment details for the given user_id
+                select_query = """
+                    SELECT account_number, upi, ifsc, mici, balance
+                    FROM payments
+                    WHERE user_id = %s
+                """
+                cursor.execute(select_query, (user_id,))
+                payment = cursor.fetchone()
+
+                if payment:
+                    # Prepare response with the payment data
+                    payment_data = {
+                        "account_number": payment[0],
+                        "upi": payment[1],
+                        "ifsc": payment[2],
+                        "mici": payment[3],
+                        "balance": payment[4]
+                    }
+                    return jsonify(payment_data), 200
+                else:
+                    return jsonify({"error": "Payment details not found"}), 404
+
+    except Exception as e:
+        logging.error(f"Error fetching payment details for user_id {user_id}: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
