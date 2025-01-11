@@ -1108,5 +1108,59 @@ def get_payment(user_id):
         logging.error(f"Error fetching payment details for user_id {user_id}: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+from werkzeug.security import generate_password_hash, check_password_hash
+
+@app.route('/setOrCheckPassword', methods=['POST'])
+def set_or_check_password():
+    """
+    Endpoint to set or check the password in the payments table.
+    If the password is being set for the first time, store its hashed value.
+    If the password already exists, check if it matches the stored hash.
+    """
+    try:
+        data = request.get_json()
+
+        required_fields = ["user_id", "password"]
+
+        # Check for missing fields in the payload
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
+
+        user_id = data["user_id"]
+        password = data["password"]
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Check if the user_id exists and if a password is already set
+                check_query = """
+                    SELECT password FROM payments WHERE user_id = %s
+                """
+                cursor.execute(check_query, (user_id,))
+                result = cursor.fetchone()
+
+                if result:
+                    # Password already exists, verify it
+                    stored_password_hash = result[0]
+                    if check_password_hash(stored_password_hash, password):
+                        return jsonify({"message": "Password verified successfully."}), 200
+                    else:
+                        return jsonify({"error": "Incorrect password."}), 401
+                else:
+                    # Password not set, store the hashed password
+                    hashed_password = generate_password_hash(password, method='sha256')
+                    insert_query = """
+                        INSERT INTO payments (user_id, password)
+                        VALUES (%s, %s)
+                    """
+                    cursor.execute(insert_query, (user_id, hashed_password))
+                    conn.commit()
+
+                    return jsonify({"message": "Password set successfully."}), 200
+
+    except Exception as e:
+        logging.error(f"Error in set_or_check_password: {str(e)}")
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
