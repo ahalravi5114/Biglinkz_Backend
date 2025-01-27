@@ -771,7 +771,7 @@ def display_notifications():
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query = """
-                SELECT id, content, campaign_id, created_at 
+                SELECT id, content, campaign_id, created_at , status
                 FROM notifications 
                 WHERE user_id = %s 
                 ORDER BY created_at DESC
@@ -784,7 +784,7 @@ def display_notifications():
 
         # Prepare the response
         notification_list = [
-            {"id": notification[0], "content": notification[1],"campaign_id": notification[2], "created_at": notification[3].isoformat() if notification[3] else None}
+            {"id": notification[0], "content": notification[1],"campaign_id": notification[2], "created_at": notification[3].isoformat() if notification[3] else None., "status": notification[4]}
             for notification in notifications
         ]
 
