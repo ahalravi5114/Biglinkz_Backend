@@ -784,7 +784,7 @@ def display_notifications():
 
         # Prepare the response
         notification_list = [
-            {"id": notification[0], "content": notification[1],"campaign_id": notification[2], "created_at": notification[3].isoformat() if notification[3] else None., "status": notification[4]}
+            {"id": notification[0], "content": notification[1],"campaign_id": notification[2], "created_at": notification[3].isoformat() if notification[3] else None , "status": notification[4]}
             for notification in notifications
         ]
 
