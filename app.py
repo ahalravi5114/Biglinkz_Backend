@@ -270,14 +270,13 @@ def get_campaigns():
 def profile():
     """
     Endpoint to add or update influencer profile details.
-    Expects profile details in JSON payload along with user_id.
+    Also calculates and stores counts of accepted, live, and past campaigns.
     """
     try:
         data = request.get_json()
-
         required_fields = [
             "user_id", "first_name", "last_name", "insta_id", "email", "phone_number",
-            "followers", "country", "state", "city", "category" , "profile"
+            "followers", "country", "state", "city", "category", "profile"
         ]
 
         missing_fields = [field for field in required_fields if field not in data]
@@ -286,6 +285,24 @@ def profile():
 
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
+                # Fetch campaign counts
+                campaign_count_query = """
+                    SELECT 
+                        COUNT(CASE WHEN influencer_status.status = 'accepted' THEN 1 END) AS accepted,
+                        COUNT(CASE WHEN influencer_status.status = 'accepted' AND campaign_status.status = 'live' THEN 1 END) AS live,
+                        COUNT(CASE WHEN influencer_status.status = 'accepted' AND campaign_status.status = 'past' THEN 1 END) AS past
+                    FROM influencer_campaign
+                    JOIN influencer_status ON influencer_campaign.campaign_id = influencer_status.campaign_id
+                    JOIN campaign_status ON influencer_campaign.campaign_id = campaign_status.campaign_id
+                    WHERE influencer_campaign.influencer_id = %s;
+                """
+                cursor.execute(campaign_count_query, (data["user_id"],))
+                campaign_counts = cursor.fetchone()
+
+                accepted = campaign_counts[0]
+                live = campaign_counts[1]
+                past = campaign_counts[2]
+
                 # Check if the user_id exists in the table
                 check_query = """
                     SELECT 1 FROM influencer_profile WHERE user_id = %s
@@ -294,37 +311,39 @@ def profile():
                 existing_user = cursor.fetchone()
 
                 if existing_user:
-                    # If user_id exists, update the record
                     update_query = """
                         UPDATE influencer_profile
                         SET first_name = %s, last_name = %s, insta_id = %s, email = %s, 
                             phone_number = %s, followers = %s, country = %s, state = %s, 
-                            city = %s, category = %s, profile = %s
+                            city = %s, category = %s, profile = %s, bio= %s,
+                            accepted = %s, live = %s, past = %s
                         WHERE user_id = %s
                     """
                     cursor.execute(update_query, (
-                        data["first_name"], data["last_name"], data["insta_id"],
-                        data["email"], data["phone_number"], data["followers"],
-                        data["country"], data["state"], data["city"], data["category"], data["profile"],
-                        data["user_id"]
-                    ))
+    data["first_name"], data["last_name"], data["insta_id"],
+    data["email"], data["phone_number"], data["followers"],
+    data["country"], data["state"], data["city"], data["category"], data["profile"], data["bio"],
+    accepted, live, past,  
+    data["user_id"]
+))
                 else:
-                    # If user_id does not exist, insert a new record
                     insert_query = """
                         INSERT INTO influencer_profile (
                             user_id, first_name, last_name, insta_id, email, phone_number, followers,
-                            country, state, city, category , profile
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            country, state, city, category, profile, bio,
+                            accepted, live, past
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
                     """
                     cursor.execute(insert_query, (
                         data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
                         data["email"], data["phone_number"], data["followers"],
-                        data["country"], data["state"], data["city"], data["category"] , data["profile"]
+                        data["country"], data["state"], data["city"], data["category"], data["profile"], data["bio"],
+                        accepted, live, past
                     ))
-
+                
                 conn.commit()
 
-        return jsonify({"message": "Profile added/updated successfully"}), 200
+        return jsonify({"message": "Profile added/updated successfully with campaign counts"}), 200
     except Exception as e:
         logging.error(f"Error handling profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
@@ -340,7 +359,7 @@ def get_profile(user_id):
                 # Query to fetch the profile details for the given user_id
                 select_query = """
                     SELECT first_name, last_name, insta_id, email, phone_number, followers,
-                           country, state, city, category , profile
+                           country, state, city, category , profile, bio,accepted, live , past
                     FROM influencer_profile
                     WHERE user_id = %s
                 """
@@ -360,7 +379,11 @@ def get_profile(user_id):
                         "state": profile[7],
                         "city": profile[8],
                         "category": profile[9],
-                        "profile" : profile[10]
+                        "profile" : profile[10],
+                        "bio": profile[11],
+                        "accepted": profile[12],
+                        "live": profile[13],
+                        "past": profile[14]
                     }
                     return jsonify(profile_data), 200
                 else:
