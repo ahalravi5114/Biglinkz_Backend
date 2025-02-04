@@ -277,7 +277,7 @@ def profile():
 
         required_fields = [
             "user_id", "first_name", "last_name", "insta_id", "email", "phone_number",
-            "followers", "country", "state", "city", "category"
+            "followers", "country", "state", "city", "category" , 
         ]
 
         missing_fields = [field for field in required_fields if field not in data]
