@@ -277,7 +277,7 @@ def profile():
 
         required_fields = [
             "user_id", "first_name", "last_name", "insta_id", "email", "phone_number",
-            "followers", "country", "state", "city", "category" , 
+            "followers", "country", "state", "city", "category" , "profile"
         ]
 
         missing_fields = [field for field in required_fields if field not in data]
@@ -299,13 +299,13 @@ def profile():
                         UPDATE influencer_profile
                         SET first_name = %s, last_name = %s, insta_id = %s, email = %s, 
                             phone_number = %s, followers = %s, country = %s, state = %s, 
-                            city = %s, category = %s
+                            city = %s, category = %s, profile = %s
                         WHERE user_id = %s
                     """
                     cursor.execute(update_query, (
                         data["first_name"], data["last_name"], data["insta_id"],
                         data["email"], data["phone_number"], data["followers"],
-                        data["country"], data["state"], data["city"], data["category"],
+                        data["country"], data["state"], data["city"], data["category"], data["profile"],
                         data["user_id"]
                     ))
                 else:
@@ -313,13 +313,13 @@ def profile():
                     insert_query = """
                         INSERT INTO influencer_profile (
                             user_id, first_name, last_name, insta_id, email, phone_number, followers,
-                            country, state, city, category
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            country, state, city, category , profile
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     cursor.execute(insert_query, (
                         data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
                         data["email"], data["phone_number"], data["followers"],
-                        data["country"], data["state"], data["city"], data["category"]
+                        data["country"], data["state"], data["city"], data["category"] , data["profile"]
                     ))
 
                 conn.commit()
@@ -340,7 +340,7 @@ def get_profile(user_id):
                 # Query to fetch the profile details for the given user_id
                 select_query = """
                     SELECT first_name, last_name, insta_id, email, phone_number, followers,
-                           country, state, city, category
+                           country, state, city, category , profile
                     FROM influencer_profile
                     WHERE user_id = %s
                 """
@@ -360,6 +360,7 @@ def get_profile(user_id):
                         "state": profile[7],
                         "city": profile[8],
                         "category": profile[9],
+                        "profile" : profile[10]
                     }
                     return jsonify(profile_data), 200
                 else:
@@ -771,7 +772,7 @@ def display_notifications():
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query = """
-                SELECT id, content, campaign_id, created_at 
+                SELECT id, content, campaign_id, created_at , status
                 FROM notifications 
                 WHERE user_id = %s 
                 ORDER BY created_at DESC
@@ -784,7 +785,7 @@ def display_notifications():
 
         # Prepare the response
         notification_list = [
-            {"id": notification[0], "content": notification[1],"campaign_id": notification[2], "created_at": notification[3].isoformat() if notification[3] else None}
+            {"id": notification[0], "content": notification[1],"campaign_id": notification[2], "created_at": notification[3].isoformat() if notification[3] else None , "status": notification[4]}
             for notification in notifications
         ]
 
