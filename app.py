@@ -289,7 +289,7 @@ def profile():
                 campaign_count_query = """
                     SELECT 
                         COUNT(CASE WHEN influencer_status = 'accepted' THEN 1 END) AS accepted,
-                        COUNT(CASE WHEN influencer_status = 'accepted' AND campaign_status = 'live' THEN 1 END) AS live,
+                        COUNT(CASE WHEN influencer_status = 'accepted' AND campaign_status = 'live' THEN 1 END) AS ongoing,
                         COUNT(CASE WHEN influencer_status = 'accepted' AND campaign_status = 'past' THEN 1 END) AS past
                     FROM influencer_campaign
                     WHERE influencer_id = %s;
@@ -298,7 +298,7 @@ def profile():
                 campaign_counts = cursor.fetchone()
 
                 accepted = campaign_counts[0]
-                live = campaign_counts[1]
+                ongoing = campaign_counts[1]
                 past = campaign_counts[2]
 
                 # Check if the user_id exists in the table
@@ -314,14 +314,14 @@ def profile():
                         SET first_name = %s, last_name = %s, insta_id = %s, email = %s, 
                             phone_number = %s, followers = %s, country = %s, state = %s, 
                             city = %s, category = %s, profile = %s, bio = %s,
-                            accepted = %s, live = %s, past = %s
+                            accepted = %s, ongoing = %s, past = %s
                         WHERE user_id = %s
                     """
                     cursor.execute(update_query, (
                         data["first_name"], data["last_name"], data["insta_id"],
                         data["email"], data["phone_number"], data["followers"],
                         data["country"], data["state"], data["city"], data["category"], data["profile"], data["bio"],
-                        accepted, live, past,  
+                        accepted, ongoing, past,  
                         data["user_id"]
                     ))
                 else:
@@ -329,14 +329,14 @@ def profile():
                         INSERT INTO influencer_profile (
                             user_id, first_name, last_name, insta_id, email, phone_number, followers,
                             country, state, city, category, profile, bio,
-                            accepted, live, past
+                            accepted, ongoing, past
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     cursor.execute(insert_query, (
                         data["user_id"], data["first_name"], data["last_name"], data["insta_id"],
                         data["email"], data["phone_number"], data["followers"],
                         data["country"], data["state"], data["city"], data["category"], data["profile"], data["bio"],
-                        accepted, live, past
+                        accepted, ongoing, past
                     ))
                 
                 conn.commit()
@@ -358,7 +358,7 @@ def get_profile(user_id):
                 # Query to fetch the profile details for the given user_id
                 select_query = """
                     SELECT first_name, last_name, insta_id, email, phone_number, followers,
-                           country, state, city, category , profile, bio,accepted, live , past
+                           country, state, city, category , profile, bio,accepted, ongoing , past
                     FROM influencer_profile
                     WHERE user_id = %s
                 """
@@ -381,7 +381,7 @@ def get_profile(user_id):
                         "profile" : profile[10],
                         "bio": profile[11],
                         "accepted": profile[12],
-                        "live": profile[13],
+                        "ongoing": profile[13],
                         "past": profile[14]
                     }
                     return jsonify(profile_data), 200
