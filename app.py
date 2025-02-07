@@ -966,7 +966,23 @@ def store_business():
 
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                # Check if the email exists in the table
+                # Count campaigns created, active, and expired
+                count_query = """
+                    SELECT 
+                        COUNT(*) AS total,
+                        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+                        SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) AS past
+                    FROM campaigns
+                    WHERE user_id = %s
+                """
+                cursor.execute(count_query, (data["user_id"],))
+                campaign_counts = cursor.fetchone()
+                
+                totals = campaign_counts[0] if campaign_counts else 0
+                active = campaign_counts[1] if campaign_counts else 0
+                past = campaign_counts[2] if campaign_counts else 0
+
+                # Check if the user_id exists in the table
                 check_query = """
                     SELECT 1 FROM business_profile WHERE user_id = %s
                 """
@@ -974,29 +990,33 @@ def store_business():
                 existing_business = cursor.fetchone()
 
                 if existing_business:
-                    # If email exists, update the record
+                    # If user_id exists, update the record
                     update_query = """
                         UPDATE business_profile
                         SET name = %s, website = %s, insta_id = %s,
-                            country = %s, state = %s, city = %s, category = %s, email= %s
+                            country = %s, state = %s, city = %s, category = %s, email= %s,
+                            total = %s, active= %s, past= %s
                         WHERE user_id = %s
                     """
                     cursor.execute(update_query, (
                         data["name"], data["website"], insta_id,
-                        data["country"], data["state"],data["city"],data["category"],data["email"],
+                        data["country"], data["state"], data["city"], data["category"], data["email"],
+                        total, active, past,
                         data["user_id"]
                     ))
                 else:
-                    # If email does not exist, insert a new record
+                    # If user_id does not exist, insert a new record
                     insert_query = """
                         INSERT INTO business_profile (
                             name, email, website, insta_id,
-                            country,state,city, category,user_id
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            country, state, city, category, user_id,
+                            total, active, past
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     cursor.execute(insert_query, (
                         data["name"], data["email"], data["website"], insta_id,
-                        data["country"],data["state"],data["city"], data["category"],data["user_id"]
+                        data["country"], data["state"], data["city"], data["category"], data["user_id"],
+                        total, active, past
                     ))
 
                 conn.commit()
@@ -1005,6 +1025,7 @@ def store_business():
     except Exception as e:
         logging.error(f"Error handling business profile: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
         
 @app.route('/getBusinessProfile/<user_id>', methods=['GET'])
 def get_business_by_user_id(user_id):
