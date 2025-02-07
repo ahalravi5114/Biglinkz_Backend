@@ -978,7 +978,7 @@ def store_business():
                 cursor.execute(count_query, (data["user_id"],))
                 campaign_counts = cursor.fetchone()
                 
-                totals = campaign_counts[0] if campaign_counts else 0
+                total = campaign_counts[0] if campaign_counts else 0
                 active = campaign_counts[1] if campaign_counts else 0
                 past = campaign_counts[2] if campaign_counts else 0
 
@@ -1037,7 +1037,7 @@ def get_business_by_user_id(user_id):
             with conn.cursor() as cursor:
                 # Query to fetch the business profile details for the given user_id
                 select_query = """
-                    SELECT name, email, website, insta_id, country, state, city, category
+                    SELECT name, email, website, insta_id, country, state, city, category , total , active , past
                     FROM business_profile
                     WHERE user_id = %s
                 """
@@ -1055,6 +1055,9 @@ def get_business_by_user_id(user_id):
                         "state": business[5],
                         "city": business[6],
                         "category": business[7],
+                        "total": business[8],
+                        "active" : business[9],
+                        "past": business[10]
                     }
                     return jsonify(business_data), 200
                 else:
